@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Now playing card: dark glass like the popups; NowPlayingCard recolours the stroke from the album art. -->
+<!-- Now playing card: dark glass like the popups; the neon border behind it (NeonBorderView) draws the edge. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <gradient android:angle="270" android:startColor="#D92A2A2E" android:endColor="#D9161618" />
-    <stroke android:width="1.5dp" android:color="#40FFFFFF" />
     <corners android:radius="16dp" />
 </shape>

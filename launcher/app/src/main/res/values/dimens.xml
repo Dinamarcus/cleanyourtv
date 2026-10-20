@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Room around the now playing card for the neon glow, so it is not clipped by the card's own bounds. -->
+    <dimen name="now_playing_glow_pad">8dp</dimen>
+</resources>

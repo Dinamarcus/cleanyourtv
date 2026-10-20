@@ -265,103 +265,121 @@
 
     <!-- Now playing: bottom right, moved above the dock in code so it clears the app name on the left.
          Hidden until a media session plays and Home holds notification access. -->
-    <LinearLayout
+    <!-- The outer frame is the card for NowPlayingCard (fade, move, hide). It is bigger than the glass body by the glow
+         pad on every side, so the neon border behind the body can spread its glow without being clipped; the end
+         margin is 56dp minus that pad, which keeps the body where it was. -->
+    <FrameLayout
         android:id="@+id/nowPlaying"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="56dp"
-        android:padding="8dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/now_playing_bg"
+        android:layout_marginEnd="48dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:visibility="gone"
         android:alpha="0"
         android:importantForAccessibility="no">
 
-        <ImageView
-            android:id="@+id/nowPlayingArt"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:background="#22FFFFFF"
-            android:scaleType="centerCrop"
-            android:contentDescription="@null" />
+        <com.gathin.tvhome.NeonBorderView
+            android:id="@+id/nowPlayingNeon"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no" />
 
-        <!-- Fixed width, so the card does not resize with each track title; long titles are ellipsized. -->
         <LinearLayout
-            android:layout_width="220dp"
+            android:id="@+id/nowPlayingBody"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="8dp"
-            android:orientation="vertical">
+            android:layout_margin="@dimen/now_playing_glow_pad"
+            android:padding="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/now_playing_bg">
 
-            <TextView
-                android:id="@+id/nowPlayingTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:textColor="#FFFFFFFF"
-                android:textSize="15sp"
-                android:fontFamily="@font/outfit"
-                android:fontVariationSettings="'wght' 500" />
+            <ImageView
+                android:id="@+id/nowPlayingArt"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="#22FFFFFF"
+                android:scaleType="centerCrop"
+                android:contentDescription="@null" />
 
-            <TextView
-                android:id="@+id/nowPlayingArtist"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:textColor="#A6FFFFFF"
-                android:textSize="13sp"
-                android:fontFamily="@font/outfit"
-                android:fontVariationSettings="'wght' 400" />
-
-            <!-- Transport controls: always left to right, whatever the language. Previous and Next hide when the
-                 session does not offer them; NowPlayingCard owns the D-pad between the three. -->
+            <!-- Fixed width, so the card does not resize with each track title; long titles are ellipsized. -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="220dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:orientation="horizontal"
-                android:layoutDirection="ltr">
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="8dp"
+                android:orientation="vertical">
 
-                <ImageButton
-                    android:id="@+id/nowPlayingPrev"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:padding="8dp"
-                    android:background="@drawable/transport_btn_bg"
-                    android:src="@drawable/ic_media_prev"
-                    android:tint="@drawable/pill_text"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@string/media_previous" />
-                <ImageButton
-                    android:id="@+id/nowPlayingPlayPause"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="10dp"
-                    android:padding="8dp"
-                    android:background="@drawable/transport_btn_bg"
-                    android:src="@drawable/ic_media_play"
-                    android:tint="@drawable/pill_text"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@string/media_play" />
-                <ImageButton
-                    android:id="@+id/nowPlayingNext"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="10dp"
-                    android:padding="8dp"
-                    android:background="@drawable/transport_btn_bg"
-                    android:src="@drawable/ic_media_next"
-                    android:tint="@drawable/pill_text"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@string/media_next" />
+                <TextView
+                    android:id="@+id/nowPlayingTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="15sp"
+                    android:fontFamily="@font/outfit"
+                    android:fontVariationSettings="'wght' 500" />
+
+                <TextView
+                    android:id="@+id/nowPlayingArtist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:textColor="#A6FFFFFF"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/outfit"
+                    android:fontVariationSettings="'wght' 400" />
+
+                <!-- Transport controls: always left to right, whatever the language. Previous and Next hide when the
+                     session does not offer them; NowPlayingCard owns the D-pad between the three. -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:layoutDirection="ltr">
+
+                    <ImageButton
+                        android:id="@+id/nowPlayingPrev"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:padding="8dp"
+                        android:background="@drawable/transport_btn_bg"
+                        android:src="@drawable/ic_media_prev"
+                        android:tint="@drawable/pill_text"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="@string/media_previous" />
+                    <ImageButton
+                        android:id="@+id/nowPlayingPlayPause"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="10dp"
+                        android:padding="8dp"
+                        android:background="@drawable/transport_btn_bg"
+                        android:src="@drawable/ic_media_play"
+                        android:tint="@drawable/pill_text"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="@string/media_play" />
+                    <ImageButton
+                        android:id="@+id/nowPlayingNext"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="10dp"
+                        android:padding="8dp"
+                        android:background="@drawable/transport_btn_bg"
+                        android:src="@drawable/ic_media_next"
+                        android:tint="@drawable/pill_text"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="@string/media_next" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
+    </FrameLayout>
 
     <!-- The single floating glass highlight that springs between tiles. -->
     <com.gathin.tvhome.GlassView

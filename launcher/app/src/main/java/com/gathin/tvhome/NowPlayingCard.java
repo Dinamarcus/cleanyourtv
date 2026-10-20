@@ -8,7 +8,6 @@ import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.TransitionDrawable;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
@@ -28,8 +27,8 @@ import java.util.List;
 
 /**
  * The small glass card above the dock that names what is playing. While Home is in front it follows the
- * active media sessions and shows the first one that is playing: title, artist and the cover, with a thin
- * border in the cover's colour. It fades in on play and out a few seconds after pause or stop.
+ * active media sessions and shows the first one that is playing: title, artist and the cover, inside a neon
+ * border in the cover's colours that flows round the card while music plays ({@link NeonBorderView}). It fades in on play and out a few seconds after pause or stop.
  *
  * Under the text sit three round buttons: previous, play/pause and next, sent to the session that is playing (or
  * played last). They are the only focusable part of the card; their D-pad rules live here, and the card asks its
@@ -41,7 +40,6 @@ import java.util.List;
  */
 final class NowPlayingCard {
     private static final long HIDE_DELAY_MS = 4000L;
-    private static final int DEFAULT_BORDER = 0x40FFFFFF;
 
     /** Where focus goes when it leaves the card. */
     interface Host {
@@ -63,9 +61,9 @@ final class NowPlayingCard {
     private final ImageButton next;
     private final View[] buttons;
     private final Host host;
-    private final GradientDrawable background;
+    private final NeonBorderView neon;
     private final int artPx;
-    private final int borderPx;
+    private final int glowPadPx;
     private final long fadeMs;
 
     private MediaSessionManager manager;
@@ -123,6 +121,7 @@ final class NowPlayingCard {
         art = card.findViewById(R.id.nowPlayingArt);
         title = card.findViewById(R.id.nowPlayingTitle);
         artist = card.findViewById(R.id.nowPlayingArtist);
+        neon = card.findViewById(R.id.nowPlayingNeon);
         prev = card.findViewById(R.id.nowPlayingPrev);
         playPause = card.findViewById(R.id.nowPlayingPlayPause);
         next = card.findViewById(R.id.nowPlayingNext);
@@ -133,10 +132,9 @@ final class NowPlayingCard {
         for (View b : buttons) b.setOnKeyListener(this::onButtonKey);
         float density = ctx.getResources().getDisplayMetrics().density;
         artPx = (int) (64 * density);
-        borderPx = Math.max(1, (int) (1.5f * density));
+        glowPadPx = ctx.getResources().getDimensionPixelSize(R.dimen.now_playing_glow_pad);
         fadeMs = reducedMotion ? 120 : 350;
-        background = card.getBackground() instanceof GradientDrawable
-                ? (GradientDrawable) card.getBackground().mutate() : null;
+        neon.setReducedMotion(reducedMotion);
         // Round the cover with the GPU clip instead of masking the bitmap.
         final float radius = 10 * density;
         art.setOutlineProvider(new ViewOutlineProvider() {
@@ -169,6 +167,7 @@ final class NowPlayingCard {
         if (focusInside) {
             host.focusDock();   // before the buttons go away, so focus lands somewhere known
             focusInside = false;
+            neon.setFocused(false);
         }
         handler.removeCallbacks(hideTask);
         hidePending = false;
@@ -192,6 +191,7 @@ final class NowPlayingCard {
         card.animate().cancel();
         card.setAlpha(0f);
         card.setVisibility(View.GONE);
+        updateNeon();
     }
 
     /** Hides the card while focus is below the dock, where scrolled tiles would run under it. */
@@ -221,6 +221,7 @@ final class NowPlayingCard {
     void setFocusInside(boolean value) {
         if (focusInside == value) return;
         focusInside = value;
+        neon.setFocused(value);
         if (value) {
             handler.removeCallbacks(hideTask);
             hidePending = false;
@@ -231,11 +232,12 @@ final class NowPlayingCard {
     }
 
     /**
-     * Puts the card's bottom edge {@code gap} px above the dock band. The card sits in the bottom right
-     * corner of the root and is moved up with translation, so no layout pass is needed.
+     * Puts the glass body's bottom edge {@code gap} px above the dock band. The card sits in the bottom right
+     * corner of the root and is moved up with translation, so no layout pass is needed. The card is the glow
+     * pad taller than the body on each side, hence the pad that is taken back.
      */
     void placeAbove(int rootHeight, int bandTop, int gap) {
-        card.setTranslationY(-(rootHeight - bandTop + gap));
+        card.setTranslationY(-(rootHeight - bandTop + gap - glowPadPx));
     }
 
     private void adopt(List<MediaController> next) {
@@ -279,6 +281,7 @@ final class NowPlayingCard {
         active = found != null ? found : sameSession(active);
         String name = meta != null ? text(meta, MediaMetadata.METADATA_KEY_DISPLAY_TITLE, MediaMetadata.METADATA_KEY_TITLE) : "";
         playing = !name.isEmpty();
+        updateNeon();
         updateButtons();
         if (active == null && focusInside) host.focusDock();   // nothing left to control: leave before the card fades
         if (name.isEmpty()) {
@@ -433,9 +436,13 @@ final class NowPlayingCard {
         } else {
             art.setImageDrawable(next);
         }
-        if (background != null) {
-            background.setStroke(borderPx, accent != ArtColor.NONE ? (accent & 0x00FFFFFF) | 0xB3000000 : DEFAULT_BORDER);
-        }
+        neon.setAccent(accent);
+    }
+
+    /** The border flows only while the card is on screen, playing, and Home is in front (listening). */
+    private void updateNeon() {
+        neon.setRunning(listening && shown && playing);
+        neon.setLit(playing);
     }
 
     /** Cheap identity for a cover: its size plus a 4 by 4 grid of sampled pixels. 0 for none. */
@@ -505,6 +512,7 @@ final class NowPlayingCard {
         boolean visible = wanted && !obscured;
         if (visible == shown) return;
         shown = visible;
+        updateNeon();
         card.animate().cancel();
         if (visible) {
             card.setVisibility(View.VISIBLE);

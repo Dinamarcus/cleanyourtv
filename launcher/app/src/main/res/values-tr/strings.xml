@@ -62,4 +62,8 @@
     <string name="tile_add_dock">Dock\'a ekle</string>
     <string name="tile_app_info">Uygulama bilgisi</string>
     <string name="dock_not_saved">Dock kaydedilemedi</string>
+    <string name="media_previous">Önceki</string>
+    <string name="media_play">Oynat</string>
+    <string name="media_pause">Duraklat</string>
+    <string name="media_next">Sonraki</string>
 </resources>

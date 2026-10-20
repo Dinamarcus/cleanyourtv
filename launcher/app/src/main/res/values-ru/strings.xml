@@ -62,4 +62,8 @@
     <string name="tile_add_dock">Добавить на панель</string>
     <string name="tile_app_info">О приложении</string>
     <string name="dock_not_saved">Не удалось сохранить панель</string>
+    <string name="media_previous">Назад</string>
+    <string name="media_play">Воспроизвести</string>
+    <string name="media_pause">Пауза</string>
+    <string name="media_next">Далее</string>
 </resources>

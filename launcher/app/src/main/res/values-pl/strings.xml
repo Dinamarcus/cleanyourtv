@@ -62,4 +62,8 @@
     <string name="tile_add_dock">Dodaj do docka</string>
     <string name="tile_app_info">Informacje o aplikacji</string>
     <string name="dock_not_saved">Nie udało się zapisać docka</string>
+    <string name="media_previous">Poprzedni</string>
+    <string name="media_play">Odtwórz</string>
+    <string name="media_pause">Pauza</string>
+    <string name="media_next">Następny</string>
 </resources>

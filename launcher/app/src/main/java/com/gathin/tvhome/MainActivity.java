@@ -278,7 +278,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Fireflies and petals only over a picture, and never with reduced motion: they are the costliest thing here.
         if (cfg.ambientParticles && !reducedMotion && wallView != null) particles = new AmbientParticles(this, root);
         View nowPlayingView = findViewById(R.id.nowPlaying);
-        if (cfg.nowPlaying) nowPlaying = new NowPlayingCard(this, handler, nowPlayingView, reducedMotion);
+        if (cfg.nowPlaying) {
+            nowPlaying = new NowPlayingCard(this, handler, nowPlayingView, reducedMotion, new NowPlayingCard.Host() {
+                @Override
+                public void focusTopBar() {
+                    // The card sits at the right, under the right end of the top bar.
+                    findViewById(R.id.btnSettings).requestFocus();
+                }
+
+                @Override
+                public void focusDock() {
+                    focusTile(lastFocused % COLUMNS);
+                }
+            });
+        }
         else nowPlayingView.setVisibility(View.GONE);
         moduleCards = cfg.moduleCards;
         hiddenApps = new HashSet<>(cfg.hiddenApps);
@@ -407,7 +420,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Hide the glass when focus leaves the tiles.
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
             boolean onTile = newF != null && newF.getId() == R.id.card;
+            boolean onCard = nowPlaying != null && nowPlaying.owns(newF);
+            if (nowPlaying != null) nowPlaying.setFocusInside(onCard);
             if (!onTile) hideGlass();
+            if (onCard) hideHero();   // Down brings both back with the tile
         });
 
         packageFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -881,7 +897,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return position % COLUMNS == COLUMNS - 1 || position == count - 1;
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
+            if (position < COLUMNS) {
+                // Dock row: Play/Pause while the card is up, otherwise let focus move to the top bar.
+                return nowPlaying != null && nowPlaying.focusEntry();
+            }
             target = position - COLUMNS;
         } else {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;

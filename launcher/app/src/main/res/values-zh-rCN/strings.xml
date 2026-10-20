@@ -36,4 +36,8 @@
     <string name="tile_add_dock">添加到底栏</string>
     <string name="tile_app_info">应用信息</string>
     <string name="dock_not_saved">无法保存底栏</string>
+    <string name="media_previous">上一首</string>
+    <string name="media_play">播放</string>
+    <string name="media_pause">暂停</string>
+    <string name="media_next">下一首</string>
 </resources>

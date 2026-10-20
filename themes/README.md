@@ -69,6 +69,10 @@ Without it the card stays hidden and nothing else changes. The card shows while 
 fades out a few seconds after it pauses; the border takes the colour of the cover. It listens only while
 Home is in front.
 
+Under the text are Previous, Play/Pause and Next buttons (Previous and Next only when the app offers them). Press
+Up from the dock to reach them, Left and Right to move between them, OK to press one, Down to return to the dock
+and Up again for the top bar. The card stays up while one of them has focus, even if playback is paused.
+
 ## Weather
 
 With `weather_lat` and `weather_lon` set, the greeting line gets the current weather after it: "Good evening,

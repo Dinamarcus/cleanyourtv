@@ -37,4 +37,8 @@
     <string name="tile_add_dock">เพิ่มในแถบแอป</string>
     <string name="tile_app_info">ข้อมูลแอป</string>
     <string name="dock_not_saved">บันทึกแถบแอปไม่ได้</string>
+    <string name="media_previous">ก่อนหน้า</string>
+    <string name="media_play">เล่น</string>
+    <string name="media_pause">หยุดชั่วคราว</string>
+    <string name="media_next">ถัดไป</string>
 </resources>

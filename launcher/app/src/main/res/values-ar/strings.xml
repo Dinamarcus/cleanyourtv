@@ -62,4 +62,8 @@
     <string name="tile_add_dock">إضافة إلى شريط التطبيقات</string>
     <string name="tile_app_info">معلومات التطبيق</string>
     <string name="dock_not_saved">تعذّر حفظ شريط التطبيقات</string>
+    <string name="media_previous">السابق</string>
+    <string name="media_play">تشغيل</string>
+    <string name="media_pause">إيقاف مؤقت</string>
+    <string name="media_next">التالي</string>
 </resources>

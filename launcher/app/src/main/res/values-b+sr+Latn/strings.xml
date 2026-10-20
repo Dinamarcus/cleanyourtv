@@ -43,4 +43,8 @@
     <string name="tile_add_dock">Dodaj u dok</string>
     <string name="tile_app_info">Informacije o aplikaciji</string>
     <string name="dock_not_saved">Nije moguće sačuvati dok</string>
+    <string name="media_previous">Prethodna</string>
+    <string name="media_play">Pusti</string>
+    <string name="media_pause">Pauziraj</string>
+    <string name="media_next">Sledeća</string>
 </resources>

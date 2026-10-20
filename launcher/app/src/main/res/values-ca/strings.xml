@@ -35,4 +35,8 @@
     <string name="tile_add_dock">Afegeix al dock</string>
     <string name="tile_app_info">Informació de l\'aplicació</string>
     <string name="dock_not_saved">No s\'ha pogut desar el dock</string>
+    <string name="media_previous">Anterior</string>
+    <string name="media_play">Reprodueix</string>
+    <string name="media_pause">Pausa</string>
+    <string name="media_next">Següent</string>
 </resources>

@@ -18,10 +18,11 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
 
-    DockDecoration(int dockSize, float density) {
+    DockDecoration(int dockSize, float density, boolean overWallpaper) {
         this.dockSize = dockSize;
         this.density = density;
-        band.setColor(0xFF141416);
+        // Over a theme's wallpaper the band is see-through, so the picture still shows behind the dock.
+        band.setColor(overWallpaper ? 0x80141416 : 0xFF141416);
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
         edge.setColor(0x1FFFFFFF);

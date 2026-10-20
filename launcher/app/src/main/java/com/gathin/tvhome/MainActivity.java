@@ -42,7 +42,9 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LayoutAnimationController;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -88,6 +90,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private GlassView glass;
     private View ambient;
     private TextView heroName;
+    private ImageView wallView;
+    /** The usual tile entrance, kept so the intro can swap in a delayed one and put this back. */
+    private LayoutAnimationController tileEnter;
+    private boolean inFront;
+    private boolean wakeIntroPending;
+    /**
+     * The TV coming out of standby resumes Home instead of recreating it, so the intro is replayed then.
+     * Home is shown again before SCREEN_ON arrives, so the replay is armed at SCREEN_OFF and runs in onResume.
+     * If the TV wakes into an app instead, SCREEN_ON disarms it, so it does not play much later.
+     */
+    private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
+                wakeIntroPending = true;
+            } else if (!inFront) {
+                handler.postDelayed(() -> { if (!inFront) wakeIntroPending = false; }, 3000);
+            }
+        }
+    };
     private int ambientColor = -1;
     private boolean heroShown;
     private TextView greeting;
@@ -199,8 +221,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
         glass = findViewById(R.id.glass);
         ambient = findViewById(R.id.ambient);
+        // The coloured glow muddies a theme's picture; keep it only on the plain background.
+        if (cfg.wallpaper != null) ambient.setVisibility(View.GONE);
         heroName = findViewById(R.id.heroName);
         greeting = findViewById(R.id.greeting);
+        if (cfg.wallpaper != null) softenOverWallpaper();
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
         shamsi = cfg.shamsiDate;
@@ -218,11 +243,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS));
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
-        grid.addItemDecoration(new DockDecoration(COLUMNS, density));
+        grid.addItemDecoration(new DockDecoration(COLUMNS, density, cfg.wallpaper != null));
         int enterAnim = reducedMotion ? R.anim.tile_enter_reduced : R.anim.tile_enter;
         float enterDelay = reducedMotion ? 0f : 0.06f;
-        grid.setLayoutAnimation(new LayoutAnimationController(
-                AnimationUtils.loadAnimation(this, enterAnim), enterDelay));
+        tileEnter = new LayoutAnimationController(AnimationUtils.loadAnimation(this, enterAnim), enterDelay);
+        grid.setLayoutAnimation(tileEnter);
         adapter = new AppAdapter(this, this, COLUMNS, cfg);
         grid.setAdapter(adapter);
 
@@ -236,7 +261,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(AppAdapter.tileWidthPx(inner, COLUMNS, density)), density);
             int dockRow = itemH + (int) ((6 + 12) * density);   // item height plus DockDecoration offsets
             int gridRows = itemH * rowsBelowDock;
-            int want = Math.max(0, h - dockRow - gridRows - (int) (30 * density));
+            // With no grid rows under it the dock can sit lower: its tiles have no name label, so the
+            // label space reserved in itemH already leaves room under the band.
+            int bottomGap = rowsBelowDock == 0 ? 0 : (int) (30 * density);
+            int want = Math.max(0, h - dockRow - gridRows - bottomGap);
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
             }
@@ -276,6 +304,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 s.setSpring(new SpringForce().setStiffness(260f).setDampingRatio(0.58f));
             }
         }
+
+        if (savedInstanceState == null) playIntro(0, false);
+        IntentFilter screenFilter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+        screenFilter.addAction(Intent.ACTION_SCREEN_ON);
+        registerReceiver(screenReceiver, screenFilter);
 
         btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
@@ -337,6 +370,79 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
+     * Over a picture the white header and the large app name need a soft shadow to stay readable, and the
+     * app name is set smaller so it does not cover the middle of the wallpaper.
+     */
+    private void softenOverWallpaper() {
+        heroName.setTextSize(36f);
+        int[] ids = {R.id.heroName, R.id.greeting, R.id.clock, R.id.ampm, R.id.date};
+        for (int id : ids) {
+            TextView t = findViewById(id);
+            if (t != null) t.setShadowLayer(10f * density, 0f, 2f * density, 0x99000000);
+        }
+    }
+
+    /**
+     * One-time entrance when Home is created (after boot or when the launcher was restarted, not on every
+     * Home press): the picture settles in from a slight zoom, the clock drops in, the pills follow one by one
+     * and the tiles rise last. Plain view animations on hardware layers, nothing that redraws every frame on
+     * the CPU. A replay after standby waits a moment (baseDelay) for the panel to light up, and kicks the
+     * tile animation itself.
+     */
+    private void playIntro(long baseDelay, boolean replay) {
+        float d = density;
+        boolean calm = reducedMotion;
+        long b = calm ? 0 : baseDelay;
+        if (wallView != null) {
+            wallView.setAlpha(0f);
+            float from = calm ? 1f : 1.12f;
+            wallView.setScaleX(from);
+            wallView.setScaleY(from);
+            wallView.animate().alpha(1f).scaleX(1f).scaleY(1f).setStartDelay(b)
+                    .setDuration(calm ? 400 : 1700).setInterpolator(new DecelerateInterpolator(2.4f))
+                    .withLayer().start();
+        }
+        introView(findViewById(R.id.leftBlock), -18 * d, calm ? 0 : b + 280, calm ? 200 : 650);
+        ViewGroup pills = findViewById(R.id.topButtons);
+        for (int i = 0; i < pills.getChildCount(); i++) {
+            introView(pills.getChildAt(i), -14 * d, calm ? 0 : b + 420 + i * 110, calm ? 200 : 520);
+        }
+        // Tiles: the same entrance as usual, held back until the picture is mostly in. onResume runs it.
+        int enterAnim = calm ? R.anim.tile_enter_reduced : R.anim.tile_enter;
+        float enterDelay = calm ? 0f : 0.06f;
+        Animation late = AnimationUtils.loadAnimation(this, enterAnim);
+        late.setStartOffset(calm ? 0 : b + 650);
+        grid.setLayoutAnimation(new LayoutAnimationController(late, enterDelay));
+        if (replay) {
+            grid.scheduleLayoutAnimation();
+            grid.invalidate();
+        }
+        // The dock band is drawn by the grid: fade it in with the tiles instead of showing it empty first.
+        introView(grid, 0f, calm ? 0 : b + 600, calm ? 200 : 450);
+        // The highlight and the app name wait for the tiles, so they do not float over an empty dock.
+        glass.setVisibility(View.INVISIBLE);
+        heroName.setVisibility(View.INVISIBLE);
+        handler.postDelayed(() -> {
+            glass.setVisibility(View.VISIBLE);
+            heroName.setVisibility(View.VISIBLE);
+        }, calm ? 0 : b + 1150);
+        handler.postDelayed(() -> grid.setLayoutAnimation(tileEnter), b + 2500);
+    }
+
+    private void runWakeIntro() {
+        wakeIntroPending = false;
+        playIntro(300, true);
+    }
+
+    private void introView(View v, float dy, long delay, long duration) {
+        if (v == null) return;
+        v.setAlpha(0f);
+        v.setTranslationY(dy);
+        v.animate().alpha(1f).translationY(0f).setStartDelay(delay).setDuration(duration)
+                .setInterpolator(new DecelerateInterpolator(2f)).start();
+    }
+
+    /**
      * A theme's full-screen picture behind everything. Decoded once, downsampled to the screen so a 4K
      * JPEG costs a 1080p bitmap at most (about 8 MB), which is the price of a wallpaper on a 1 GB TV.
      */
@@ -356,6 +462,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             android.widget.ImageView wall = new android.widget.ImageView(this);
             wall.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
             wall.setImageBitmap(bmp);
+            wallView = wall;
             root.addView(wall, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         } catch (Exception | OutOfMemoryError e) {
             // A bad or huge picture must never take the home screen down; the plain colour stays.
@@ -391,6 +498,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateWifiLabel();
         updateInputsButton();
         handler.postDelayed(minuteTick, MINUTE_MS);
+        inFront = true;
+        if (wakeIntroPending) runWakeIntro();
     }
 
     /** Rebuilds the tiles (and the module cards), then puts focus back where it was. */
@@ -458,6 +567,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        inFront = false;
         unregisterReceiver(packageReceiver);
         handler.removeCallbacks(minuteTick);
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
@@ -474,6 +584,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(screenReceiver);
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.unregisterCallback(inputCallback);

@@ -7,13 +7,20 @@ import android.os.Handler;
 import android.os.Looper;
 import android.service.dreams.DreamService;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+
+import java.io.File;
 
 import java.util.Random;
 
 /**
  * Screensaver: the launcher's thin clock and date on black, over a slow ambient glow.
  * Every minute the clock drifts to a new spot and the glow shifts colour, so nothing burns in.
- * No network, no images: cheap enough for a 1 GB TV.
+ * No network. With a theme wallpaper, the picture sits dimmed behind the clock and drifts a little each
+ * minute; otherwise it is black. One downsampled bitmap at most: cheap enough for a 1 GB TV.
  */
 public class ClockDream extends DreamService {
 
@@ -24,6 +31,7 @@ public class ClockDream extends DreamService {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Random random = new Random();
     private View content;
+    private ImageView wall;
     private GradientDrawable glow;
     private int colorIndex;
     private int glowColor;
@@ -33,6 +41,7 @@ public class ClockDream extends DreamService {
         public void run() {
             moveClock();
             shiftGlow();
+            driftWall();
             handler.postDelayed(this, MOVE_MS);
         }
     };
@@ -52,6 +61,8 @@ public class ClockDream extends DreamService {
         ambient.setBackground(glow);
         ambient.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
                 glow.setGradientRadius((r - l) * 0.55f));
+        File picture = Config.load(this).wallpaper;
+        if (picture != null) showWall(picture);
         colorIndex = random.nextInt(PALETTE.length);
         setGlow(PALETTE[colorIndex]);
     }
@@ -99,6 +110,58 @@ public class ClockDream extends DreamService {
             glow.setGradientCenter((x + content.getWidth() / 2f) / parent.getWidth(),
                     (y + content.getHeight() / 2f) / parent.getHeight());
         }
+    }
+
+    /** The theme's wallpaper, dimmed and slightly enlarged so it has room to drift without showing edges. */
+    private void showWall(File file) {
+        try {
+            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+            android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
+            opts.inJustDecodeBounds = true;
+            android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
+            int sample = 1;
+            while (opts.outWidth / (sample * 2) >= dm.widthPixels && opts.outHeight / (sample * 2) >= dm.heightPixels) sample *= 2;
+            opts.inJustDecodeBounds = false;
+            opts.inSampleSize = sample;
+            opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;
+            android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
+            if (bmp == null) return;
+            wall = new ImageView(this);
+            wall.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            wall.setImageBitmap(bmp);
+            wall.setAlpha(0.4f);
+            wall.setScaleX(1.12f);
+            wall.setScaleY(1.12f);
+            ViewGroup root = (ViewGroup) content.getParent();
+            root.addView(wall, 0, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            shadowTexts(content);
+        } catch (Exception | OutOfMemoryError e) {
+            wall = null;   // a bad picture leaves the plain black screensaver
+        }
+    }
+
+    /** Over the picture the thin clock needs a soft shadow to stay readable. */
+    private void shadowTexts(View v) {
+        float d = getResources().getDisplayMetrics().density;
+        if (v instanceof android.widget.TextView) {
+            ((android.widget.TextView) v).setShadowLayer(14f * d, 0f, 2f * d, 0xB3000000);
+        } else if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) shadowTexts(g.getChildAt(i));
+        }
+    }
+
+    /** A slow move to a new spot within the enlarged picture's margin; nothing stays put long enough to burn in. */
+    private void driftWall() {
+        if (wall == null || wall.getWidth() == 0) return;
+        float mx = wall.getWidth() * 0.05f;
+        float my = wall.getHeight() * 0.05f;
+        wall.animate()
+                .translationX((random.nextFloat() * 2f - 1f) * mx)
+                .translationY((random.nextFloat() * 2f - 1f) * my)
+                .setDuration(20_000).setInterpolator(new DecelerateInterpolator(1.5f))
+                .withLayer().start();
     }
 
     private void shiftGlow() {

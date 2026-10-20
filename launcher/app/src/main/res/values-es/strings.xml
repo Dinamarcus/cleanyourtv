@@ -14,6 +14,7 @@
     <string name="good_afternoon">Buenas tardes</string>
     <string name="good_evening">Buenas noches</string>
     <string name="good_night">Buenas noches</string>
+    <string name="greeting_with_name">%1$s, %2$s</string>
     <string name="ethernet">Ethernet</string>
     <string name="offline">Sin conexión</string>
     <string name="not_available">No disponible en este TV</string>

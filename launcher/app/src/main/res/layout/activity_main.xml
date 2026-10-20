@@ -162,6 +162,17 @@
                 android:layout_marginBottom="6dp"
                 android:orientation="horizontal">
 
+                <!-- A TV input of its own (quick_input in config.json); hidden unless the TV lists it. -->
+                <TextView
+                    android:id="@+id/btnQuick"
+                    style="@style/TopButton"
+                    android:visibility="gone"
+                    android:maxWidth="180dp"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:drawableStart="@drawable/ic_camera"
+                    android:nextFocusDown="@+id/grid" />
+
                 <TextView
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"
@@ -207,6 +218,64 @@
                 android:scrollbars="none"
                 android:descendantFocusability="afterDescendants" />
         </FrameLayout>
+    </LinearLayout>
+
+    <!-- Now playing: bottom right, moved above the dock in code so it clears the app name on the left.
+         Hidden until a media session plays and Home holds notification access. -->
+    <LinearLayout
+        android:id="@+id/nowPlaying"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="56dp"
+        android:padding="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/now_playing_bg"
+        android:visibility="gone"
+        android:alpha="0"
+        android:importantForAccessibility="no">
+
+        <ImageView
+            android:id="@+id/nowPlayingArt"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="#22FFFFFF"
+            android:scaleType="centerCrop"
+            android:contentDescription="@null" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/nowPlayingTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="220dp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#FFFFFFFF"
+                android:textSize="15sp"
+                android:fontFamily="@font/outfit"
+                android:fontVariationSettings="'wght' 500" />
+
+            <TextView
+                android:id="@+id/nowPlayingArtist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:maxWidth="220dp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#A6FFFFFF"
+                android:textSize="13sp"
+                android:fontFamily="@font/outfit"
+                android:fontVariationSettings="'wght' 400" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- The single floating glass highlight that springs between tiles. -->

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Optional extras. A theme can set the same keys in config.json (themes/README.md); the values below are the
+  built-in defaults, and each feature stays off or hidden when its data or permission is missing.
+-->
+<resources>
+    <!-- A TV input shown as its own pill before Inputs (a camera input, say), matched exactly against the
+         input's id as TvInputManager lists it (`dumpsys tv_input`). Empty, or an id the TV does not list: no pill. -->
+    <string name="quick_input" translatable="false"></string>
+    <!-- Text on that pill. Empty: the input's own label. -->
+    <string name="quick_input_label" translatable="false"></string>
+
+    <!-- Now playing card above the dock while something is playing. Needs notification access for Home:
+         adb shell cmd notification allow_listener com.gathin.tvhome/com.gathin.tvhome.MediaListenerService
+         Without it the card simply stays hidden. -->
+    <bool name="now_playing">true</bool>
+
+    <!-- Fireflies over a night picture and sakura petals over a day picture. Only with a theme wallpaper
+         and with reduced_motion off. -->
+    <bool name="ambient_particles">false</bool>
+
+    <!-- A name to greet: "Good evening, Name". Empty: the plain greeting. -->
+    <string name="greeting_name" translatable="false"></string>
+</resources>

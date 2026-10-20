@@ -14,6 +14,7 @@
     <string name="good_afternoon">Dobar dan</string>
     <string name="good_evening">Dobro veče</string>
     <string name="good_night">Laku noć</string>
+    <string name="greeting_with_name">%1$s, %2$s</string>
     <string name="ethernet">Ethernet</string>
     <string name="offline">Nema mreže</string>
     <string name="not_available">Nije dostupno na ovom televizoru</string>

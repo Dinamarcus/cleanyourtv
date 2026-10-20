@@ -62,6 +62,15 @@ final class Config {
     /** Start of day and of night, in minutes since midnight. */
     final int dayStartMinute;
     final int nightStartMinute;
+    /** TV input id for the quick pill before Inputs, and its text; empty when unused (label: the input's own). */
+    final String quickInput;
+    final String quickInputLabel;
+    /** Now playing card above the dock (needs notification access for the app). */
+    final boolean nowPlaying;
+    /** Fireflies or sakura petals over the wallpaper; off by default. */
+    final boolean ambientParticles;
+    /** Name added to the greeting; empty for the plain greeting. */
+    final String greetingName;
     /** Whether the overlay file was present and parsed. */
     final boolean overlayApplied;
 
@@ -71,7 +80,8 @@ final class Config {
                    boolean shamsiDate, boolean moduleCards, boolean reducedMotion, String vpnApp,
                    boolean showHomeSettingsShortcut, int backgroundColor,
                    File wallpaper, File wallpaperDay, int dayStartMinute, int nightStartMinute,
-                   boolean overlayApplied) {
+                   String quickInput, String quickInputLabel, boolean nowPlaying, boolean ambientParticles,
+                   String greetingName, boolean overlayApplied) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
         this.liveTvPackage = liveTvPackage;
@@ -91,6 +101,11 @@ final class Config {
         this.wallpaperDay = wallpaperDay;
         this.dayStartMinute = dayStartMinute;
         this.nightStartMinute = nightStartMinute;
+        this.quickInput = quickInput;
+        this.quickInputLabel = quickInputLabel;
+        this.nowPlaying = nowPlaying;
+        this.ambientParticles = ambientParticles;
+        this.greetingName = greetingName;
         this.overlayApplied = overlayApplied;
     }
 
@@ -117,6 +132,11 @@ final class Config {
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
         String dayStart = res.getString(R.string.day_start).trim();
         String nightStart = res.getString(R.string.night_start).trim();
+        String quickInput = res.getString(R.string.quick_input).trim();
+        String quickInputLabel = res.getString(R.string.quick_input_label).trim();
+        boolean nowPlaying = res.getBoolean(R.bool.now_playing);
+        boolean particles = res.getBoolean(R.bool.ambient_particles);
+        String greetingName = res.getString(R.string.greeting_name).trim();
         int background = 0xFF000000;
         boolean applied = false;
 
@@ -142,6 +162,11 @@ final class Config {
             background = color(json, "background_color", background);
             dayStart = string(json, "day_start", dayStart);
             nightStart = string(json, "night_start", nightStart);
+            quickInput = string(json, "quick_input", quickInput);
+            quickInputLabel = string(json, "quick_input_label", quickInputLabel);
+            nowPlaying = bool(json, "now_playing", nowPlaying);
+            particles = bool(json, "ambient_particles", particles);
+            greetingName = string(json, "greeting_name", greetingName);
         }
         File wallpaper = pictureIn(dir, WALLPAPER_NAME);
         File wallpaperDay = pictureIn(dir, WALLPAPER_DAY_NAME);
@@ -160,7 +185,8 @@ final class Config {
                 Math.max(1, columns), Math.max(0, rowsBelow), shamsi, moduleCards, reducedMotion,
                 vpn, homeSettings, background, wallpaper, wallpaperDay,
                 DayNight.parseMinutes(dayStart, DayNight.DEFAULT_DAY_START),
-                DayNight.parseMinutes(nightStart, DayNight.DEFAULT_NIGHT_START), applied);
+                DayNight.parseMinutes(nightStart, DayNight.DEFAULT_NIGHT_START),
+                quickInput, quickInputLabel, nowPlaying, particles, greetingName, applied);
     }
 
     /** The picture to show at this time of day (minutes since midnight); null for the plain colour. */

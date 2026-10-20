@@ -38,6 +38,10 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
 | `wallpaper` | bool | Show `wallpaper.jpg` (and `wallpaper_day.jpg`) from the theme folder (`true`), or ignore them (`false`) |
 | `day_start`, `night_start` | `"HH:mm"` | When the day picture starts (default `"07:00"`) and the night one (default `"19:00"`); a bad value keeps the default |
+| `quick_input`, `quick_input_label` | string | A TV input id (as `dumpsys tv_input` lists it, matched exactly) that gets its own pill before Inputs, e.g. a camera input; the label defaults to the input's own. No pill when empty or not on the TV |
+| `now_playing` | bool | A card above the dock, on the right, with the title, artist and cover of what is playing (default `true`); needs notification access, see below |
+| `ambient_particles` | bool | Fireflies over the night picture and sakura petals over the day one (default `false`); only with a wallpaper and `reduced_motion` off |
+| `greeting_name` | string | A name for the greeting: "Good evening, Name" (translated); empty keeps the plain greeting |
 
 ## Wallpapers
 
@@ -49,6 +53,26 @@ A theme can also ship `wallpaper_day.jpg`: `wallpaper.jpg` is then the night pic
 for the time on the TV (`day_start` to `night_start` is day, which may wrap midnight) and fades to the
 other at the change, within a minute, without a restart; the screensaver picks by the time it starts.
 Without `wallpaper.jpg`, `wallpaper_day.jpg` is shown all day. The same size advice applies to both.
+
+## Now playing
+
+`now_playing` reads the active media sessions, which Android only allows with notification access. Home
+ships an empty listener service for that and never reads a notification. Grant it once over adb:
+
+```bash
+adb shell cmd notification allow_listener com.gathin.tvhome/com.gathin.tvhome.MediaListenerService
+```
+
+Without it the card stays hidden and nothing else changes. The card shows while a session is playing and
+fades out a few seconds after it pauses; the border takes the colour of the cover. It listens only while
+Home is in front.
+
+## Ambient particles
+
+`"ambient_particles": true` drifts a dozen fireflies over the night picture and a dozen sakura petals over
+the day one (`wallpaper_day.jpg`), following the day and night switch. They are tiny views moved by the GPU,
+but a weak GPU still redraws the screen while they move, so they stay off with `reduced_motion` and without a
+wallpaper, and stop whenever Home is not in front.
 
 ## Reduced motion
 

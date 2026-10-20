@@ -119,6 +119,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean heroShown;
     private TextView greeting;
     private View btnInputs;
+    private TextView btnQuick;
+    /** The TV input the quick pill opens: config quick_input once the TV lists it, else null. */
+    private String quickInputId;
+    private NowPlayingCard nowPlaying;
+    private AmbientParticles particles;
     private TextView btnWifi;
     private TextView shamsiDate;
     private boolean shamsi;
@@ -168,11 +173,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         @Override
         public void onInputAdded(String inputId) {
             updateInputsButton();
+            updateQuickInput();
         }
 
         @Override
         public void onInputRemoved(String inputId) {
             updateInputsButton();
+            updateQuickInput();
         }
     };
     /** Listens for any VPN coming up or going down, even one this app's traffic is excluded from. */
@@ -241,7 +248,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             date.setTextSize(11f);
             date.setPadding(0, (int) (4 * density), 0, 0);
         }
+        // A longer top bar (the quick input pill) can leave the date too little room: shrink it a little
+        // rather than cut the month off. Re-checked when the width or the day changes.
+        TextView dateView = findViewById(R.id.date);
+        final float dateSp = shamsi ? 11f : 14f;
+        dateView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if (r - l != or - ol) dateView.post(() -> fitDate(dateView, dateSp));
+        });
+        dateView.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence c, int a, int b, int n) { }
+            @Override public void onTextChanged(CharSequence c, int a, int b, int n) { }
+            @Override public void afterTextChanged(android.text.Editable e) { dateView.post(() -> fitDate(dateView, dateSp)); }
+        });
         vpnApp = cfg.vpnApp;
+        // Fireflies and petals only over a picture, and never with reduced motion: they are the costliest thing here.
+        if (cfg.ambientParticles && !reducedMotion && wallView != null) particles = new AmbientParticles(this, root);
+        View nowPlayingView = findViewById(R.id.nowPlaying);
+        if (cfg.nowPlaying) nowPlaying = new NowPlayingCard(this, handler, nowPlayingView, reducedMotion);
+        else nowPlayingView.setVisibility(View.GONE);
         moduleCards = cfg.moduleCards;
         hiddenApps = new HashSet<>(cfg.hiddenApps);
 
@@ -273,6 +297,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int want = Math.max(0, h - dockRow - gridRows - bottomGap);
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
+            }
+            if (nowPlaying != null) {
+                // The card sits just above the dock band, on the right; the app name is on the left.
+                Rect gridInRoot = new Rect(0, 0, 0, 0);
+                root.offsetDescendantRectToMyCoords(grid, gridInRoot);
+                nowPlaying.placeAbove(root.getHeight(), gridInRoot.top + want, (int) (16 * density));
             }
         });
 
@@ -317,8 +347,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         registerReceiver(screenReceiver, screenFilter);
 
         btnInputs = findViewById(R.id.btnInputs);
+        btnQuick = findViewById(R.id.btnQuick);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
+        btnQuick.setOnClickListener(v -> {
+            if (quickInputId != null) openInput(quickInputId);   // the same switch as an HDMI row in the Inputs menu
+        });
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnWifi.setOnLongClickListener(v -> {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
@@ -342,12 +376,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return true;
             }
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                // The left end is Inputs, or Wi-Fi on a box without inputs.
-                return v.getId() == R.id.btnInputs
-                        || (v.getId() == R.id.btnWifi && btnInputs.getVisibility() != View.VISIBLE);
+                // The left end is the first pill showing: the quick input, Inputs, or Wi-Fi on a box without either.
+                ViewGroup bar = (ViewGroup) v.getParent();
+                for (int i = 0; i < bar.getChildCount(); i++) {
+                    if (bar.getChildAt(i).getVisibility() == View.VISIBLE) return bar.getChildAt(i) == v;
+                }
+                return true;
             }
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
         };
+        btnQuick.setOnKeyListener(pillKeys);
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
@@ -373,6 +411,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
                     .build(), vpnCallback);
         }
+    }
+
+    /** Largest size up to maxSp (down to 10sp) at which the upper-cased date fits on its line. */
+    private void fitDate(TextView date, float maxSp) {
+        int avail = date.getWidth() - date.getPaddingLeft() - date.getPaddingRight();
+        if (avail <= 0) return;
+        String text = date.getText().toString().toUpperCase(Locale.getDefault());
+        float sp = maxSp;
+        TextPaint paint = new TextPaint(date.getPaint());
+        while (sp > 10f) {
+            paint.setTextSize(sp * getResources().getDisplayMetrics().scaledDensity);
+            if (paint.measureText(text) <= avail) break;
+            sp -= 0.5f;
+        }
+        if (Math.abs(date.getTextSize() / getResources().getDisplayMetrics().scaledDensity - sp) > 0.01f) date.setTextSize(sp);
     }
 
     /**
@@ -497,6 +550,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         next.setScaleY(old.getScaleY());
         wallView = next;
         wallFile = file;
+        if (inFront) updateParticles();
         final long fadeMs = reducedMotion ? 300 : 1500;
         next.animate().alpha(1f).setDuration(fadeMs).withLayer().start();
         // A timer rather than an end action: playIntro may restart wallView's animation and cancel this one.
@@ -535,9 +589,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateGreeting();
         updateWifiLabel();
         updateInputsButton();
+        updateQuickInput();
         updateWallpaper();
         handler.postDelayed(minuteTick, MINUTE_MS);
         inFront = true;
+        updateParticles();
+        if (nowPlaying != null) nowPlaying.start();
         if (wakeIntroPending) runWakeIntro();
     }
 
@@ -609,6 +666,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         inFront = false;
         unregisterReceiver(packageReceiver);
         handler.removeCallbacks(minuteTick);
+        // Nothing keeps moving or listening while Home is behind another app or the screen is off.
+        if (particles != null) particles.stop();
+        if (nowPlaying != null) nowPlaying.stop();
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
         if (openPopup != null) openPopup.dismiss();
@@ -674,6 +734,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.animateToFinalPosition(y - glassScrollShift);
         }
         View item = (View) card.getParent();
+        if (nowPlaying != null) nowPlaying.setObscured(position >= COLUMNS);
         if (position < COLUMNS) {
             // Dock: park it at the bottom of the screen and show the top shelf for this app.
             int decoratedTop = item.getTop() - (int) (6 * density);
@@ -938,7 +999,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else if (hour < 17) res = R.string.good_afternoon;
         else if (hour < 22) res = R.string.good_evening;
         else res = R.string.good_night;
-        greeting.setText(res);
+        String name = config.greetingName;
+        greeting.setText(name.isEmpty() ? getString(res) : getString(R.string.greeting_with_name, getString(res), name));
         if (shamsi) shamsiDate.setText(Shamsi.today());
     }
 
@@ -1022,6 +1084,40 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 "com.xiaomi.mitv.settings", "com.xiaomi.mitv.settings.entry.MainActivity"));
         if (i.resolveActivity(getPackageManager()) != null) return i;
         return new Intent(standardAction);   // nothing found: let open() show the can't-open toast
+    }
+
+    /**
+     * Shows the quick pill when config quick_input names an input the TV lists (exact id match), with the
+     * configured text or the input's own label; hidden otherwise, so a wrong id or a TV without it costs nothing.
+     */
+    private void updateQuickInput() {
+        String wanted = config.quickInput;
+        String found = null, label = config.quickInputLabel;
+        if (!wanted.isEmpty()) {
+            try {
+                TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
+                for (TvInputInfo info : tim != null ? tim.getTvInputList() : Collections.<TvInputInfo>emptyList()) {
+                    if (!wanted.equals(info.getId())) continue;
+                    found = info.getId();
+                    if (label.isEmpty()) {
+                        CharSequence own = info.loadLabel(this);
+                        label = own != null && own.length() > 0 ? own.toString() : found;
+                    }
+                    break;
+                }
+            } catch (RuntimeException ignored) {
+            }
+        }
+        quickInputId = found;
+        if (found != null) btnQuick.setText(label);
+        btnQuick.setVisibility(found != null ? View.VISIBLE : View.GONE);
+    }
+
+    /** Fireflies over the night picture, petals over the day one; follows the picture on screen. */
+    private void updateParticles() {
+        if (particles == null || wallView == null) return;
+        boolean day = wallFile != null && Config.WALLPAPER_DAY_NAME.equals(wallFile.getName());
+        particles.start(ParticleMotion.kindFor(day), wallView);
     }
 
     /** Hides the Inputs pill when it would have nothing to list: streaming boxes have no HDMI-in, AV or tuner. */

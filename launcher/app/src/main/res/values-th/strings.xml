@@ -15,6 +15,15 @@
     <string name="good_evening">สวัสดีตอนเย็น</string>
     <string name="good_night">สวัสดียามค่ำคืน</string>
     <string name="greeting_with_name">%1$s %2$s</string>
+    <string name="weather_clear">ท้องฟ้าแจ่มใส</string>
+    <string name="weather_partly_cloudy">มีเมฆบางส่วน</string>
+    <string name="weather_cloudy">มีเมฆมาก</string>
+    <string name="weather_fog">หมอก</string>
+    <string name="weather_drizzle">ฝนปรอย</string>
+    <string name="weather_rain">ฝน</string>
+    <string name="weather_snow">หิมะ</string>
+    <string name="weather_storm">พายุฝนฟ้าคะนอง</string>
+    <string name="weather_description">%1$s, %2$s</string>
     <string name="ethernet">อีเทอร์เน็ต</string>
     <string name="offline">ออฟไลน์</string>
     <string name="not_available">ทีวีเครื่องนี้ไม่รองรับ</string>

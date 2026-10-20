@@ -118,6 +118,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private int ambientColor = -1;
     private boolean heroShown;
     private TextView greeting;
+    /** Weather after the greeting; null when weather_lat and weather_lon are not set (nothing is requested). */
+    private WeatherSource weather;
+    private View weatherRow;
+    private TextView weatherTemp;
     private View btnInputs;
     private TextView btnQuick;
     /** The TV input the quick pill opens: config quick_input once the TV lists it, else null. */
@@ -213,6 +217,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             handler.postDelayed(this, MINUTE_MS);
         }
     };
+    private final Runnable weatherTick = new Runnable() {
+        @Override
+        public void run() {
+            weather.refresh(true);
+            handler.postDelayed(this, Weather.REFRESH_MS);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -238,6 +249,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (cfg.wallpaper != null) ambient.setVisibility(View.GONE);
         heroName = findViewById(R.id.heroName);
         greeting = findViewById(R.id.greeting);
+        weatherRow = findViewById(R.id.weather);
+        weatherTemp = findViewById(R.id.weatherTemp);
+        weather = WeatherSource.create(this, cfg, this::showWeather);
         if (cfg.wallpaper != null) softenOverWallpaper();
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
@@ -434,7 +448,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     private void softenOverWallpaper() {
         heroName.setTextSize(36f);
-        int[] ids = {R.id.heroName, R.id.greeting, R.id.clock, R.id.ampm, R.id.date};
+        int[] ids = {R.id.heroName, R.id.greeting, R.id.weatherSep, R.id.weatherTemp, R.id.clock, R.id.ampm, R.id.date};
         for (int id : ids) {
             TextView t = findViewById(id);
             if (t != null) t.setShadowLayer(10f * density, 0f, 2f * density, 0x99000000);
@@ -587,6 +601,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         promptsPaused = false;
         reloadApps(true);
         updateGreeting();
+        if (weather != null) {
+            showWeather(weather.current());   // what we have at once, then a refresh if it is older than 30 minutes
+            weather.refresh(false);
+            handler.postDelayed(weatherTick, Weather.REFRESH_MS);
+        }
         updateWifiLabel();
         updateInputsButton();
         updateQuickInput();
@@ -666,6 +685,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         inFront = false;
         unregisterReceiver(packageReceiver);
         handler.removeCallbacks(minuteTick);
+        handler.removeCallbacks(weatherTick);
         // Nothing keeps moving or listening while Home is behind another app or the screen is off.
         if (particles != null) particles.stop();
         if (nowPlaying != null) nowPlaying.stop();
@@ -683,6 +703,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (weather != null) weather.close();
         unregisterReceiver(screenReceiver);
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
@@ -1002,6 +1023,49 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String name = config.greetingName;
         greeting.setText(name.isEmpty() ? getString(res) : getString(R.string.greeting_with_name, getString(res), name));
         if (shamsi) shamsiDate.setText(Shamsi.today());
+    }
+
+    /** The weather after the greeting: icon and temperature, or nothing while there is no recent reading. */
+    private void showWeather(Weather.Reading r) {
+        if (r == null) {
+            weatherRow.setVisibility(View.GONE);
+            return;
+        }
+        int condition = Weather.condition(r.code);
+        String temp = Weather.format(r.temperature);
+        int label = weatherLabel(condition);
+        weatherTemp.setText(temp);
+        weatherTemp.setCompoundDrawablesRelativeWithIntrinsicBounds(weatherIcon(condition, r.isDay), 0, 0, 0);
+        weatherTemp.setContentDescription(label == 0 ? temp : getString(R.string.weather_description, getString(label), temp));
+        weatherRow.setVisibility(View.VISIBLE);
+    }
+
+    private static int weatherIcon(int condition, boolean isDay) {
+        switch (condition) {
+            case Weather.CLEAR: return isDay ? R.drawable.ic_weather_clear_day : R.drawable.ic_weather_clear_night;
+            case Weather.PARTLY_CLOUDY: return isDay ? R.drawable.ic_weather_partly_day : R.drawable.ic_weather_partly_night;
+            case Weather.CLOUDY: return R.drawable.ic_weather_cloudy;
+            case Weather.FOG: return R.drawable.ic_weather_fog;
+            case Weather.DRIZZLE: return R.drawable.ic_weather_drizzle;
+            case Weather.RAIN: return R.drawable.ic_weather_rain;
+            case Weather.SNOW: return R.drawable.ic_weather_snow;
+            case Weather.STORM: return R.drawable.ic_weather_storm;
+            default: return 0;
+        }
+    }
+
+    private static int weatherLabel(int condition) {
+        switch (condition) {
+            case Weather.CLEAR: return R.string.weather_clear;
+            case Weather.PARTLY_CLOUDY: return R.string.weather_partly_cloudy;
+            case Weather.CLOUDY: return R.string.weather_cloudy;
+            case Weather.FOG: return R.string.weather_fog;
+            case Weather.DRIZZLE: return R.string.weather_drizzle;
+            case Weather.RAIN: return R.string.weather_rain;
+            case Weather.SNOW: return R.string.weather_snow;
+            case Weather.STORM: return R.string.weather_storm;
+            default: return 0;
+        }
     }
 
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */

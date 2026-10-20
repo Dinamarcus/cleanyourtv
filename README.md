@@ -205,12 +205,13 @@ The install scripts ask the TV which launcher owns Home and only disable one the
 
 A small native Android TV app (`com.gathin.tvhome`, about 280 KB installed) in plain Java with
 AndroidX RecyclerView and nothing heavier. Built for sets with 1 GB of RAM: no blur, no video, no
-network, no background services. It needs JDK 17 and Android SDK platform 34 to build; on macOS,
+background services, and no network unless you set a place for the [weather](themes/README.md#weather). It needs JDK 17 and Android SDK platform 34 to build; on macOS,
 `brew install openjdk@17 android-commandlinetools` and `sdkmanager "platforms;android-34" "build-tools;34.0.0"`. On Linux
 the install script finds `~/Android/Sdk` and the `java` on your PATH.
 
 - **Rearrange the dock from the remote**: hold OK on a tile for a small menu (move left or right, remove from the dock, add to the dock, App info). The order is saved in `config.json` on the TV, next to any theme keys.
 - **Configure** in [`config.xml`](launcher/app/src/main/res/values/config.xml): dock order, hidden apps, the Live TV package, columns (tiles shrink from 5 up), rows under the dock, an optional VPN app for the network pill, and `reduced_motion` for TVs whose GPU cannot keep up.
+- **Weather** after the greeting ("Good evening, Name · ☁ 18°"), off until you give it a latitude and longitude. It asks [Open-Meteo](https://open-meteo.com/) (no key or account) every 30 minutes while Home is shown; this is the only thing in the launcher that uses the network. See [`themes/README.md`](themes/README.md#weather).
 - **Themes** set the same keys plus a background colour and a wallpaper from a `config.json` pushed to the TV, no rebuild. Three ship in [`themes/`](themes/), documented there.
 - **Language** follows the TV: English, German, Spanish, Catalan, French, Russian, Serbian (Latin), Polish, Arabic, Simplified Chinese, Thai, Turkish. Android 13+ can set it for the launcher alone: `tools/tv.py 'cmd locale set-app-locales com.gathin.tvhome --locales ca'`.
   Russian includes the module-card approval and management screens and the VPN-off badge.

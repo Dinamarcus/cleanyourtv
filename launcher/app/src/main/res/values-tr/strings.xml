@@ -15,6 +15,15 @@
     <string name="good_evening">İyi Akşamlar</string>
     <string name="good_night">İyi Geceler</string>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="weather_clear">Açık</string>
+    <string name="weather_partly_cloudy">Parçalı bulutlu</string>
+    <string name="weather_cloudy">Bulutlu</string>
+    <string name="weather_fog">Sis</string>
+    <string name="weather_drizzle">Çise</string>
+    <string name="weather_rain">Yağmur</string>
+    <string name="weather_snow">Kar</string>
+    <string name="weather_storm">Gök gürültülü fırtına</string>
+    <string name="weather_description">%1$s, %2$s</string>
     <string name="ethernet">Ethernet</string>
     <string name="offline">Çevrimdışı</string>
     <string name="not_available">Bu TV’de kullanılamıyor</string>

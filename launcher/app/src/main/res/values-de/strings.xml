@@ -15,6 +15,15 @@
     <string name="good_evening">Guten Abend</string>
     <string name="good_night">Gute Nacht</string>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="weather_clear">Klar</string>
+    <string name="weather_partly_cloudy">Teils bewölkt</string>
+    <string name="weather_cloudy">Bewölkt</string>
+    <string name="weather_fog">Nebel</string>
+    <string name="weather_drizzle">Nieselregen</string>
+    <string name="weather_rain">Regen</string>
+    <string name="weather_snow">Schnee</string>
+    <string name="weather_storm">Gewitter</string>
+    <string name="weather_description">%1$s, %2$s</string>
     <string name="ethernet">LAN</string>
     <string name="offline">Offline</string>
     <string name="not_available">Auf diesem TV nicht verfügbar</string>

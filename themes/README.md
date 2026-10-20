@@ -41,6 +41,8 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `quick_input`, `quick_input_label` | string | A TV input id (as `dumpsys tv_input` lists it, matched exactly) that gets its own pill before Inputs, e.g. a camera input; the label defaults to the input's own. No pill when empty or not on the TV |
 | `now_playing` | bool | A card above the dock, on the right, with the title, artist and cover of what is playing (default `true`); needs notification access, see below |
 | `ambient_particles` | bool | Fireflies over the night picture and sakura petals over the day one (default `false`); only with a wallpaper and `reduced_motion` off |
+| `weather_lat`, `weather_lon` | string (a bare number works too) | Place for the weather after the greeting, e.g. `"41.3874"` and `"2.1686"`; empty (the default) keeps the weather off and the launcher offline, see Weather below |
+| `weather_units` | `"celsius"` \| `"fahrenheit"` | Unit for the temperature; default `"celsius"`, anything else is Celsius |
 | `greeting_name` | string | A name for the greeting: "Good evening, Name" (translated); empty keeps the plain greeting |
 
 ## Wallpapers
@@ -66,6 +68,28 @@ adb shell cmd notification allow_listener com.gathin.tvhome/com.gathin.tvhome.Me
 Without it the card stays hidden and nothing else changes. The card shows while a session is playing and
 fades out a few seconds after it pauses; the border takes the colour of the cover. It listens only while
 Home is in front.
+
+## Weather
+
+With `weather_lat` and `weather_lon` set, the greeting line gets the current weather after it: "Good evening,
+Name · ☁ 18°", with an icon for clear, partly cloudy, cloudy, fog, drizzle, rain, snow or thunderstorm (a moon
+at night where it fits) and a spoken description for screen readers. It is off unless both are set, and then
+the launcher makes no network request at all.
+
+This is the only network use in Home. It asks [Open-Meteo](https://open-meteo.com/) (no key or account) for the
+temperature at those coordinates, which are sent to it with each request, over HTTPS in the background, and:
+
+- polls every 30 minutes while Home is in front (and when it comes back to the front with an older value),
+  never while another app or the screensaver is showing;
+- keeps the last answer so it shows at once on the next start, and hides it once it is over 3 hours old;
+- fails silently: no network, a bad answer or a slow server just keeps the old value while it is fresh, or
+  shows nothing. A failed request is not retried for 2 minutes.
+
+```json
+{ "weather_lat": "41.3874", "weather_lon": "2.1686", "weather_units": "celsius" }
+```
+
+For a build without a theme, set the same three values in `res/values/config_extras.xml`.
 
 ## Ambient particles
 

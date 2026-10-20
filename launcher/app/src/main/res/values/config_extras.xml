@@ -21,4 +21,12 @@
 
     <!-- A name to greet: "Good evening, Name". Empty: the plain greeting. -->
     <string name="greeting_name" translatable="false"></string>
+
+    <!-- Current weather after the greeting ("Good evening, Name  ·  18°"), from Open-Meteo (no key). Set both
+         to the place's coordinates, e.g. 41.3874 and 2.1686; either empty and nothing is requested at all, so
+         the launcher stays offline. This is the only thing in the launcher that uses the network. -->
+    <string name="weather_lat" translatable="false"></string>
+    <string name="weather_lon" translatable="false"></string>
+    <!-- celsius or fahrenheit -->
+    <string name="weather_units" translatable="false">celsius</string>
 </resources>

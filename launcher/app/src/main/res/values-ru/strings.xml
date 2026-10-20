@@ -15,6 +15,15 @@
     <string name="good_evening">Добрый вечер</string>
     <string name="good_night">Доброй ночи</string>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="weather_clear">Ясно</string>
+    <string name="weather_partly_cloudy">Переменная облачность</string>
+    <string name="weather_cloudy">Облачно</string>
+    <string name="weather_fog">Туман</string>
+    <string name="weather_drizzle">Морось</string>
+    <string name="weather_rain">Дождь</string>
+    <string name="weather_snow">Снег</string>
+    <string name="weather_storm">Гроза</string>
+    <string name="weather_description">%1$s, %2$s</string>
     <string name="ethernet">Ethernet</string>
     <string name="offline">Нет сети</string>
     <string name="not_available">Недоступно на этом телевизоре</string>

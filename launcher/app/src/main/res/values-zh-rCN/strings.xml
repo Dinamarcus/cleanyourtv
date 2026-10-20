@@ -15,6 +15,15 @@
     <string name="good_evening">晚上好</string>
     <string name="good_night">晚安</string>
     <string name="greeting_with_name">%1$s，%2$s</string>
+    <string name="weather_clear">晴</string>
+    <string name="weather_partly_cloudy">多云</string>
+    <string name="weather_cloudy">阴</string>
+    <string name="weather_fog">雾</string>
+    <string name="weather_drizzle">毛毛雨</string>
+    <string name="weather_rain">雨</string>
+    <string name="weather_snow">雪</string>
+    <string name="weather_storm">雷暴</string>
+    <string name="weather_description">%1$s，%2$s</string>
     <string name="ethernet">有线网络</string>
     <string name="offline">未连接网络</string>
     <string name="not_available">此电视不支持该功能</string>

@@ -29,7 +29,8 @@ import java.util.List;
  * unknown or badly typed key is ignored, so a theme can change the dock and the look without a rebuild:
  * {@code tools/theme.sh themes/<name>} pushes a theme folder there and restarts Home.
  *
- * Read once in {@link MainActivity#onCreate}; nothing here touches the network.
+ * Read once in {@link MainActivity#onCreate}. Nothing here touches the network; the only network use in the
+ * launcher is the optional weather, see {@link WeatherSource}.
  */
 final class Config {
     private static final String TAG = "TvHome.Config";
@@ -71,6 +72,11 @@ final class Config {
     final boolean ambientParticles;
     /** Name added to the greeting; empty for the plain greeting. */
     final String greetingName;
+    /** Place for the weather after the greeting, as the text from config (see {@link Weather#coordinate}); empty: no weather, no network. */
+    final String weatherLat;
+    final String weatherLon;
+    /** "celsius" (default) or "fahrenheit". */
+    final String weatherUnits;
     /** Whether the overlay file was present and parsed. */
     final boolean overlayApplied;
 
@@ -81,7 +87,8 @@ final class Config {
                    boolean showHomeSettingsShortcut, int backgroundColor,
                    File wallpaper, File wallpaperDay, int dayStartMinute, int nightStartMinute,
                    String quickInput, String quickInputLabel, boolean nowPlaying, boolean ambientParticles,
-                   String greetingName, boolean overlayApplied) {
+                   String greetingName, String weatherLat, String weatherLon, String weatherUnits,
+                   boolean overlayApplied) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
         this.liveTvPackage = liveTvPackage;
@@ -106,6 +113,9 @@ final class Config {
         this.nowPlaying = nowPlaying;
         this.ambientParticles = ambientParticles;
         this.greetingName = greetingName;
+        this.weatherLat = weatherLat;
+        this.weatherLon = weatherLon;
+        this.weatherUnits = weatherUnits;
         this.overlayApplied = overlayApplied;
     }
 
@@ -137,6 +147,9 @@ final class Config {
         boolean nowPlaying = res.getBoolean(R.bool.now_playing);
         boolean particles = res.getBoolean(R.bool.ambient_particles);
         String greetingName = res.getString(R.string.greeting_name).trim();
+        String weatherLat = res.getString(R.string.weather_lat).trim();
+        String weatherLon = res.getString(R.string.weather_lon).trim();
+        String weatherUnits = res.getString(R.string.weather_units).trim();
         int background = 0xFF000000;
         boolean applied = false;
 
@@ -167,6 +180,9 @@ final class Config {
             nowPlaying = bool(json, "now_playing", nowPlaying);
             particles = bool(json, "ambient_particles", particles);
             greetingName = string(json, "greeting_name", greetingName);
+            weatherLat = stringOrNumber(json, "weather_lat", weatherLat);
+            weatherLon = stringOrNumber(json, "weather_lon", weatherLon);
+            weatherUnits = string(json, "weather_units", weatherUnits);
         }
         File wallpaper = pictureIn(dir, WALLPAPER_NAME);
         File wallpaperDay = pictureIn(dir, WALLPAPER_DAY_NAME);
@@ -186,7 +202,8 @@ final class Config {
                 vpn, homeSettings, background, wallpaper, wallpaperDay,
                 DayNight.parseMinutes(dayStart, DayNight.DEFAULT_DAY_START),
                 DayNight.parseMinutes(nightStart, DayNight.DEFAULT_NIGHT_START),
-                quickInput, quickInputLabel, nowPlaying, particles, greetingName, applied);
+                quickInput, quickInputLabel, nowPlaying, particles, greetingName,
+                weatherLat, weatherLon, weatherUnits, applied);
     }
 
     /** The picture to show at this time of day (minutes since midnight); null for the plain colour. */
@@ -264,6 +281,13 @@ final class Config {
 
     private static String string(JSONObject o, String key, String fallback) {
         Object v = o.opt(key);
+        return v instanceof String ? ((String) v).trim() : fallback;
+    }
+
+    /** A string, or a bare number written as one (coordinates are easy to type without quotes). */
+    private static String stringOrNumber(JSONObject o, String key, String fallback) {
+        Object v = o.opt(key);
+        if (v instanceof Number) return String.valueOf(((Number) v).doubleValue());
         return v instanceof String ? ((String) v).trim() : fallback;
     }
 

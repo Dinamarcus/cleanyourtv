@@ -15,6 +15,15 @@
     <string name="good_evening">مساء الخير</string>
     <string name="good_night">ليلة سعيدة</string>
     <string name="greeting_with_name">%1$s، %2$s</string>
+    <string name="weather_clear">صافٍ</string>
+    <string name="weather_partly_cloudy">غائم جزئيًا</string>
+    <string name="weather_cloudy">غائم</string>
+    <string name="weather_fog">ضباب</string>
+    <string name="weather_drizzle">رذاذ</string>
+    <string name="weather_rain">مطر</string>
+    <string name="weather_snow">ثلج</string>
+    <string name="weather_storm">عاصفة رعدية</string>
+    <string name="weather_description">%1$s، %2$s</string>
     <string name="ethernet">إيثرنت</string>
     <string name="offline">غير متصل</string>
     <string name="not_available">غير متاح على هذا التلفاز</string>

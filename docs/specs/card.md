@@ -155,7 +155,8 @@ any violation drops that one card, with a log line and no other effect.
 
 - The launcher never installs, downloads, enables or disables anything, binds no service, loads no
   code, views or resources from a module beyond the one XML file and the label and artwork every
-  tile already uses, and has no network permission.
+  tile already uses. Cards never cause a network request; the launcher's only network use is the
+  optional weather on the greeting line, which has nothing to do with modules.
 - Nothing is shown until the owner says so, and the answer is pinned to the signing key. The owner
   judges a package name and an app label; the launcher judges the digest.
 - A card can only make its own activity look different; it cannot start anything else. Launching it

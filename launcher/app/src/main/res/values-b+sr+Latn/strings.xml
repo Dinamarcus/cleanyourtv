@@ -15,6 +15,15 @@
     <string name="good_evening">Dobro veče</string>
     <string name="good_night">Laku noć</string>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="weather_clear">Vedro</string>
+    <string name="weather_partly_cloudy">Delimično oblačno</string>
+    <string name="weather_cloudy">Oblačno</string>
+    <string name="weather_fog">Magla</string>
+    <string name="weather_drizzle">Rosulja</string>
+    <string name="weather_rain">Kiša</string>
+    <string name="weather_snow">Sneg</string>
+    <string name="weather_storm">Grmljavina</string>
+    <string name="weather_description">%1$s, %2$s</string>
     <string name="ethernet">Ethernet</string>
     <string name="offline">Nema mreže</string>
     <string name="not_available">Nije dostupno na ovom televizoru</string>

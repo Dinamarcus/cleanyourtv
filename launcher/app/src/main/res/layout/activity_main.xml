@@ -287,8 +287,9 @@
             android:scaleType="centerCrop"
             android:contentDescription="@null" />
 
+        <!-- Fixed width, so the card does not resize with each track title; long titles are ellipsized. -->
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="220dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:layout_marginEnd="8dp"
@@ -296,9 +297,8 @@
 
             <TextView
                 android:id="@+id/nowPlayingTitle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:maxWidth="220dp"
                 android:singleLine="true"
                 android:ellipsize="end"
                 android:textColor="#FFFFFFFF"
@@ -308,10 +308,9 @@
 
             <TextView
                 android:id="@+id/nowPlayingArtist"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:maxWidth="220dp"
                 android:singleLine="true"
                 android:ellipsize="end"
                 android:textColor="#A6FFFFFF"

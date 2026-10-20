@@ -4,7 +4,12 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Outline;
+import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.TransitionDrawable;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
 import android.media.session.MediaSessionManager;
@@ -82,6 +87,11 @@ final class NowPlayingCard {
     private String boundKey = "";
     /** Signature of the cover on screen (see signature); 0 when none. */
     private long boundCoverSig;
+    /** A cover waiting to settle; see bind. */
+    private Runnable pendingCover;
+    /** Spotify sends title + old cover, then its logo, then the album art within about half a second. */
+    private static final long COVER_SETTLE_MS = 600;
+    private static final int COVER_FADE_MS = 220;
 
     /** Runs a few seconds after the last playing session paused. */
     private final Runnable hideTask = () -> {
@@ -177,6 +187,8 @@ final class NowPlayingCard {
         shown = false;
         boundKey = "";
         boundCoverSig = 0L;
+        if (pendingCover != null) handler.removeCallbacks(pendingCover);
+        pendingCover = null;
         card.animate().cancel();
         card.setAlpha(0f);
         card.setVisibility(View.GONE);
@@ -393,13 +405,33 @@ final class NowPlayingCard {
             artist.setText(by);
             artist.setVisibility(by.isEmpty() ? View.GONE : View.VISIBLE);
         }
-        int accent = ArtColor.NONE;
-        Bitmap small = cover != null ? scaleToCover(cover) : null;
-        if (small != null) {
-            art.setImageBitmap(small);
-            accent = accentOf(small);
+        final Bitmap small = cover != null ? scaleToCover(cover) : null;
+        if (pendingCover != null) handler.removeCallbacks(pendingCover);
+        pendingCover = null;
+        if (card.getVisibility() != View.VISIBLE) {
+            showCover(small, false);   // nothing on screen yet: no reason to wait
+            return;
+        }
+        // Show only the cover that settles, so the player's placeholder logo never flashes in between.
+        pendingCover = () -> {
+            pendingCover = null;
+            showCover(small, true);
+        };
+        handler.postDelayed(pendingCover, COVER_SETTLE_MS);
+    }
+
+    private void showCover(Bitmap small, boolean fade) {
+        int accent = small != null ? accentOf(small) : ArtColor.NONE;
+        Drawable next = small != null ? new BitmapDrawable(ctx.getResources(), small) : new ColorDrawable(Color.TRANSPARENT);
+        Drawable current = art.getDrawable();
+        if (current instanceof TransitionDrawable) current = ((TransitionDrawable) current).getDrawable(1);
+        if (fade && current != null) {
+            TransitionDrawable t = new TransitionDrawable(new Drawable[]{current, next});
+            t.setCrossFadeEnabled(true);
+            art.setImageDrawable(t);
+            t.startTransition(COVER_FADE_MS);
         } else {
-            art.setImageDrawable(null);
+            art.setImageDrawable(next);
         }
         if (background != null) {
             background.setStroke(borderPx, accent != ArtColor.NONE ? (accent & 0x00FFFFFF) | 0xB3000000 : DEFAULT_BORDER);

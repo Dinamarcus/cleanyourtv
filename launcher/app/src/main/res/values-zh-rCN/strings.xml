@@ -20,4 +20,10 @@
     <string name="cant_open">无法打开 %1$s</string>
     <string name="date_format">M月d日 EEEE</string>
     <string name="dream_name">时钟</string>
+    <string name="tile_move_left">左移</string>
+    <string name="tile_move_right">右移</string>
+    <string name="tile_remove_dock">从底栏移除</string>
+    <string name="tile_add_dock">添加到底栏</string>
+    <string name="tile_app_info">应用信息</string>
+    <string name="dock_not_saved">无法保存底栏</string>
 </resources>

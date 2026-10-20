@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Push a theme (a folder with config.json and optionally wallpaper.jpg) to the launcher on the TV and
+# Push a theme (a folder with config.json and optionally wallpaper.jpg and wallpaper_day.jpg) to the launcher on the TV and
 # restart Home so it picks it up. The launcher reads the files from its external files directory and
 # overlays config.json on its built-in config.xml; see themes/README.md for the keys.
 #
@@ -20,7 +20,7 @@ DIR=/sdcard/Android/data/$PKG/files
 tv() { "$PY" -I tv.py "$@"; }
 
 if [ "${1:-}" = --reset ]; then
-  tv "rm -f $DIR/config.json $DIR/wallpaper.jpg; am force-stop $PKG; am start -n $PKG/.MainActivity >/dev/null; echo reset" | tail -n 1
+  tv "rm -f $DIR/config.json $DIR/wallpaper.jpg $DIR/wallpaper_day.jpg; am force-stop $PKG; am start -n $PKG/.MainActivity >/dev/null; echo reset" | tail -n 1
   exit 0
 fi
 THEME="${THEME_ARG:?usage: theme.sh <theme folder> | --reset}"
@@ -34,6 +34,11 @@ if [ -f "$THEME/wallpaper.jpg" ]; then
   "$PY" -I b64push.py "$THEME/wallpaper.jpg" "$DIR/wallpaper.jpg"
 else
   tv "rm -f $DIR/wallpaper.jpg" >/dev/null
+fi
+if [ -f "$THEME/wallpaper_day.jpg" ]; then
+  "$PY" -I b64push.py "$THEME/wallpaper_day.jpg" "$DIR/wallpaper_day.jpg"
+else
+  tv "rm -f $DIR/wallpaper_day.jpg" >/dev/null
 fi
 tv "am force-stop $PKG; am start -n $PKG/.MainActivity >/dev/null; echo applied" | tail -n 1
 echo "Theme $(basename "$THEME") is on the TV. Undo with: tools/theme.sh --reset"

@@ -46,4 +46,10 @@
     <string name="card_state_new">Yeni</string>
     <string name="card_state_new_key">Yeni anahtar</string>
     <string name="card_state_new_label">Yeni ad</string>
+    <string name="tile_move_left">Sola taşı</string>
+    <string name="tile_move_right">Sağa taşı</string>
+    <string name="tile_remove_dock">Dock\'tan kaldır</string>
+    <string name="tile_add_dock">Dock\'a ekle</string>
+    <string name="tile_app_info">Uygulama bilgisi</string>
+    <string name="dock_not_saved">Dock kaydedilemedi</string>
 </resources>

@@ -20,4 +20,10 @@
     <string name="cant_open">No se puede abrir %1$s</string>
     <string name="date_format">EEEE d \'de\' MMMM</string>
     <string name="dream_name">Reloj</string>
+    <string name="tile_move_left">Mover a la izquierda</string>
+    <string name="tile_move_right">Mover a la derecha</string>
+    <string name="tile_remove_dock">Quitar del dock</string>
+    <string name="tile_add_dock">Añadir al dock</string>
+    <string name="tile_app_info">Información de la app</string>
+    <string name="dock_not_saved">No se pudo guardar el dock</string>
 </resources>

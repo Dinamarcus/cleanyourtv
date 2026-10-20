@@ -21,4 +21,10 @@
     <string name="date_format">EEEE, d. MMMM</string>
     <string name="dream_name">Uhr</string>
     <string name="input_key_service_description">Öffnet die Quellenauswahl, wenn die Input-Taste der Fernbedienung gedrückt wird.</string>
+    <string name="tile_move_left">Nach links</string>
+    <string name="tile_move_right">Nach rechts</string>
+    <string name="tile_remove_dock">Aus dem Dock entfernen</string>
+    <string name="tile_add_dock">Zum Dock hinzufügen</string>
+    <string name="tile_app_info">App-Info</string>
+    <string name="dock_not_saved">Dock konnte nicht gespeichert werden</string>
 </resources>

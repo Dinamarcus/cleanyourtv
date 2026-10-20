@@ -27,4 +27,10 @@
     <string name="input_key_service_description">Otvara izbor ulaza kada se na daljinskom pritisne dugme Input.</string>
     <string name="home_key_name">Dugme Home</string>
     <string name="home_key_description">Dugme Home na daljinskom otvara ovaj početni ekran.</string>
+    <string name="tile_move_left">Pomeri ulevo</string>
+    <string name="tile_move_right">Pomeri udesno</string>
+    <string name="tile_remove_dock">Ukloni iz doka</string>
+    <string name="tile_add_dock">Dodaj u dok</string>
+    <string name="tile_app_info">Informacije o aplikaciji</string>
+    <string name="dock_not_saved">Nije moguće sačuvati dok</string>
 </resources>

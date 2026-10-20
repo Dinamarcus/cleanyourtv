@@ -91,6 +91,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private View ambient;
     private TextView heroName;
     private ImageView wallView;
+    /** The picture on wallView, to tell whether the time of day wants another. */
+    private File wallFile;
+    /** A day/night swap is being decoded or faded in; nothing else starts meanwhile. */
+    private boolean wallSwapping;
+    private Config config;
     /** The usual tile entrance, kept so the intro can swap in a delayed one and put this back. */
     private LayoutAnimationController tileEnter;
     private boolean inFront;
@@ -197,6 +202,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             updateGreeting();
             updateWifiLabel();
+            updateWallpaper();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -207,7 +213,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
-        Config cfg = Config.load(this);
+        Config cfg = config = Config.load(this);
         COLUMNS = cfg.columns;
         reducedMotion = cfg.reducedMotion;
         liveTvPkg = cfg.liveTvPackage;
@@ -218,7 +224,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         root = findViewById(R.id.root);
         root.setBackgroundColor(cfg.backgroundColor);
-        if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
+        if (cfg.wallpaper != null) showWallpaper(cfg.wallpaperAt(Config.minuteOfDay()));
         glass = findViewById(R.id.glass);
         ambient = findViewById(R.id.ambient);
         // The coloured glow muddies a theme's picture; keep it only on the plain background.
@@ -442,31 +448,63 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 .setInterpolator(new DecelerateInterpolator(2f)).start();
     }
 
-    /**
-     * A theme's full-screen picture behind everything. Decoded once, downsampled to the screen so a 4K
-     * JPEG costs a 1080p bitmap at most (about 8 MB), which is the price of a wallpaper on a 1 GB TV.
-     */
+    /** A theme's full-screen picture behind everything, decoded once (see {@link Wallpaper#decode}). */
     private void showWallpaper(File file) {
-        try {
-            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
-            android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
-            opts.inJustDecodeBounds = true;
-            android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
-            int sample = 1;
-            while (opts.outWidth / (sample * 2) >= dm.widthPixels && opts.outHeight / (sample * 2) >= dm.heightPixels) sample *= 2;
-            opts.inJustDecodeBounds = false;
-            opts.inSampleSize = sample;
-            opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;   // no alpha needed, half the memory
-            android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
-            if (bmp == null) return;
-            android.widget.ImageView wall = new android.widget.ImageView(this);
-            wall.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
-            wall.setImageBitmap(bmp);
-            wallView = wall;
-            root.addView(wall, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        } catch (Exception | OutOfMemoryError e) {
-            // A bad or huge picture must never take the home screen down; the plain colour stays.
+        Bitmap bmp = Wallpaper.decode(file, getResources().getDisplayMetrics());
+        if (bmp == null) return;   // the plain colour stays
+        wallView = wallpaperView(bmp);
+        wallFile = file;
+        root.addView(wallView, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    private ImageView wallpaperView(Bitmap bmp) {
+        ImageView wall = new ImageView(this);
+        wall.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        wall.setImageBitmap(bmp);
+        return wall;
+    }
+
+    /**
+     * With a day and a night picture, swaps to the one the time of day wants. The new one is decoded off the
+     * main thread, then faded in over the old one for 1.5 s; the old view and its bitmap are dropped at the
+     * end, so two full-screen bitmaps exist only during the fade. Without a day picture this does nothing.
+     */
+    private void updateWallpaper() {
+        if (config.wallpaperDay == null || wallView == null || wallSwapping) return;
+        final File want = config.wallpaperAt(Config.minuteOfDay());
+        if (want == null || want.equals(wallFile)) return;
+        wallSwapping = true;
+        final android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        new Thread(() -> {
+            final Bitmap bmp = Wallpaper.decode(want, dm);
+            handler.post(() -> fadeWallpaper(want, bmp));
+        }, "wallpaper-decode").start();
+    }
+
+    private void fadeWallpaper(File file, Bitmap bmp) {
+        if (bmp == null || isFinishing() || isDestroyed() || wallView == null) {
+            wallFile = file;   // an unreadable picture is not retried every minute
+            wallSwapping = false;
+            return;
         }
+        final ImageView old = wallView;
+        final ImageView next = wallpaperView(bmp);
+        next.setAlpha(0f);
+        root.addView(next, root.indexOfChild(old) + 1,
+                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        // Keep the scale of the intro, so a swap during it does not jump.
+        next.setScaleX(old.getScaleX());
+        next.setScaleY(old.getScaleY());
+        wallView = next;
+        wallFile = file;
+        final long fadeMs = reducedMotion ? 300 : 1500;
+        next.animate().alpha(1f).setDuration(fadeMs).withLayer().start();
+        // A timer rather than an end action: playIntro may restart wallView's animation and cancel this one.
+        handler.postDelayed(() -> {
+            root.removeView(old);
+            old.setImageDrawable(null);
+            wallSwapping = false;
+        }, fadeMs + 100);
     }
 
     /**
@@ -497,6 +535,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateGreeting();
         updateWifiLabel();
         updateInputsButton();
+        updateWallpaper();
         handler.postDelayed(minuteTick, MINUTE_MS);
         inFront = true;
         if (wakeIntroPending) runWakeIntro();
@@ -797,6 +836,96 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         });
         grid.smoothScrollToPosition(pos);
+    }
+
+    // ---- tile menu -------------------------------------------------------------------------------
+
+    /**
+     * Hold OK on a tile: a small menu beside it to rearrange the dock or open the app's info page. The Default
+     * home shortcut is not an app that can be pinned, so it keeps opening its info page directly.
+     */
+    @Override
+    public void onTileMenu(int position, View card) {
+        final String pkg = adapter.pkgAt(position);
+        if (pkg == null) return;
+        if (!adapter.isPinnable(position)) {
+            AppAdapter.showAppInfo(this, pkg);
+            return;
+        }
+        final List<String> dock = adapter.dockPackages();
+        final boolean inDock = dock.contains(pkg);
+        final String key = adapter.keyAt(position);
+
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        final PopupWindow popup = glassPopup(panel, (int) (190 * density));
+        if (inDock) {
+            if (DockOrder.canMoveLeft(dock, pkg)) {
+                addMenuRow(rows, popup, R.string.tile_move_left, () -> changeDock(DockOrder.moveLeft(dock, pkg), dock, key, position));
+            }
+            if (DockOrder.canMoveRight(dock, pkg)) {
+                addMenuRow(rows, popup, R.string.tile_move_right, () -> changeDock(DockOrder.moveRight(dock, pkg), dock, key, position));
+            }
+            // The app leaves the dock for the grid; focus stays on the slot, which the next app fills.
+            addMenuRow(rows, popup, R.string.tile_remove_dock, () -> changeDock(DockOrder.remove(dock, pkg), dock, null, position));
+        } else {
+            addMenuRow(rows, popup, R.string.tile_add_dock, () -> changeDock(DockOrder.add(dock, pkg, COLUMNS), dock, key, position));
+        }
+        addMenuRow(rows, popup, R.string.tile_app_info, () -> AppAdapter.showAppInfo(this, pkg));
+
+        // Fit the widest row, then sit above the tile (the dock hugs the bottom of the screen) or below it
+        // in the grid, whichever has room, kept inside the screen.
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int width = Math.max((int) (190 * density), panel.getMeasuredWidth());
+        popup.setWidth(width);
+        int height = panel.getMeasuredHeight();
+        int[] at = new int[2];
+        card.getLocationInWindow(at);
+        int grow = (int) (card.getHeight() * (AppAdapter.FOCUS_SCALE - 1f) / 2f);   // the focused tile is zoomed
+        int gap = (int) (10 * density), edge = (int) (16 * density);
+        int x = Math.max(edge, Math.min(at[0] + (card.getWidth() - width) / 2, root.getWidth() - width - edge));
+        int below = at[1] + card.getHeight() + grow + gap;
+        boolean above = inDock || below + height > root.getHeight() - edge;
+        int y = above ? at[1] - grow - gap - height : below;
+        y = Math.max(edge, Math.min(y, Math.max(edge, root.getHeight() - height - edge)));
+
+        panel.setAlpha(0f);
+        panel.setPivotY(above ? height : 0f);
+        panel.setScaleY(0.92f);
+        panel.setTranslationY((above ? 8 : -8) * density);
+        popup.showAtLocation(root, Gravity.LEFT | Gravity.TOP, x, y);   // LEFT, not START: x is measured from the left even in RTL
+        panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(180)
+                .setInterpolator(new DecelerateInterpolator(1.6f)).start();
+        rows.getChildAt(0).requestFocus();
+    }
+
+    private void addMenuRow(LinearLayout rows, PopupWindow popup, int titleRes, Runnable action) {
+        TextView row = (TextView) getLayoutInflater().inflate(R.layout.item_menu, rows, false);
+        row.setText(titleRes);
+        row.setOnClickListener(v -> {
+            popup.dismiss();
+            action.run();
+        });
+        rows.addView(row);
+    }
+
+    /**
+     * Saves a new dock order to config.json and rebuilds the tiles. Focus follows the app that moved
+     * (followKey), or stays on the slot when there is none.
+     */
+    private void changeDock(List<String> newDock, List<String> oldDock, String followKey, int slot) {
+        List<String> saved = DockOrder.persisted(newDock, oldDock, adapter.favourites());
+        if (!Config.saveDockApps(this, saved)) {
+            Toast.makeText(this, R.string.dock_not_saved, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        adapter.setFavourites(saved);
+        lastFocusedKey = followKey;
+        lastFocused = slot;
+        reloadApps(false);
+        // The menu held focus, so reloadApps left it alone; once the popup is gone, go back to the moved app
+        // instead of letting Android drop focus on the first top button.
+        grid.post(this::restoreFocus);
     }
 
     // ---- top bar ---------------------------------------------------------------------------------

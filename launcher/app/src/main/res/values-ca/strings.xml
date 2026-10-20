@@ -19,4 +19,10 @@
     <string name="not_available">No disponible en aquest televisor</string>
     <string name="cant_open">No s\'ha pogut obrir %1$s</string>
     <string name="dream_name">Rellotge</string>
+    <string name="tile_move_left">Mou a l\'esquerra</string>
+    <string name="tile_move_right">Mou a la dreta</string>
+    <string name="tile_remove_dock">Treu del dock</string>
+    <string name="tile_add_dock">Afegeix al dock</string>
+    <string name="tile_app_info">Informació de l\'aplicació</string>
+    <string name="dock_not_saved">No s\'ha pogut desar el dock</string>
 </resources>

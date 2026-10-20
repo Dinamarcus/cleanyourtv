@@ -61,7 +61,8 @@ public class ClockDream extends DreamService {
         ambient.setBackground(glow);
         ambient.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
                 glow.setGradientRadius((r - l) * 0.55f));
-        File picture = Config.load(this).wallpaper;
+        // The day picture or the night one, by the time the screensaver starts.
+        File picture = Config.load(this).wallpaperAt(Config.minuteOfDay());
         if (picture != null) showWall(picture);
         colorIndex = random.nextInt(PALETTE.length);
         setGlow(PALETTE[colorIndex]);
@@ -115,16 +116,7 @@ public class ClockDream extends DreamService {
     /** The theme's wallpaper, dimmed and slightly enlarged so it has room to drift without showing edges. */
     private void showWall(File file) {
         try {
-            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
-            android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
-            opts.inJustDecodeBounds = true;
-            android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
-            int sample = 1;
-            while (opts.outWidth / (sample * 2) >= dm.widthPixels && opts.outHeight / (sample * 2) >= dm.heightPixels) sample *= 2;
-            opts.inJustDecodeBounds = false;
-            opts.inSampleSize = sample;
-            opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;
-            android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
+            android.graphics.Bitmap bmp = Wallpaper.decode(file, getResources().getDisplayMetrics());
             if (bmp == null) return;
             wall = new ImageView(this);
             wall.setScaleType(ImageView.ScaleType.CENTER_CROP);

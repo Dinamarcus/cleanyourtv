@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Day and night wallpaper: only used when a theme ships both wallpaper_day.jpg and wallpaper.jpg (the night
+  picture). Day starts at day_start and night at night_start, "HH:mm" on the TV's clock. A theme can set
+  both in config.json too (themes/README.md); an invalid time falls back to the defaults below.
+-->
+<resources>
+    <string name="day_start" translatable="false">07:00</string>
+    <string name="night_start" translatable="false">19:00</string>
+</resources>

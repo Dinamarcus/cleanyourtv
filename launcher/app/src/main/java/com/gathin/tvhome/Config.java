@@ -10,10 +10,15 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
@@ -30,6 +35,8 @@ final class Config {
     private static final String TAG = "TvHome.Config";
     static final String FILE_NAME = "config.json";
     static final String WALLPAPER_NAME = "wallpaper.jpg";
+    /** Optional daytime picture; wallpaper.jpg is then the night one. */
+    static final String WALLPAPER_DAY_NAME = "wallpaper_day.jpg";
 
     final List<String> dockApps;
     final List<String> hiddenApps;
@@ -48,8 +55,13 @@ final class Config {
     final boolean showHomeSettingsShortcut;
     /** Background colour behind everything, #RRGGBB; black unless a theme says otherwise. */
     final int backgroundColor;
-    /** Full-screen picture behind the launcher, or null for the plain colour. */
+    /** Full-screen picture behind the launcher, or null for the plain colour. With a day picture this is the night one. */
     final File wallpaper;
+    /** Daytime picture, only when {@link #wallpaper} exists too; null otherwise. */
+    final File wallpaperDay;
+    /** Start of day and of night, in minutes since midnight. */
+    final int dayStartMinute;
+    final int nightStartMinute;
     /** Whether the overlay file was present and parsed. */
     final boolean overlayApplied;
 
@@ -58,7 +70,8 @@ final class Config {
                    int columns, int rowsBelowDock,
                    boolean shamsiDate, boolean moduleCards, boolean reducedMotion, String vpnApp,
                    boolean showHomeSettingsShortcut, int backgroundColor,
-                   File wallpaper, boolean overlayApplied) {
+                   File wallpaper, File wallpaperDay, int dayStartMinute, int nightStartMinute,
+                   boolean overlayApplied) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
         this.liveTvPackage = liveTvPackage;
@@ -75,6 +88,9 @@ final class Config {
         this.showHomeSettingsShortcut = showHomeSettingsShortcut;
         this.backgroundColor = backgroundColor;
         this.wallpaper = wallpaper;
+        this.wallpaperDay = wallpaperDay;
+        this.dayStartMinute = dayStartMinute;
+        this.nightStartMinute = nightStartMinute;
         this.overlayApplied = overlayApplied;
     }
 
@@ -99,6 +115,8 @@ final class Config {
         boolean reducedMotion = res.getBoolean(R.bool.reduced_motion);
         String vpn = res.getString(R.string.vpn_app).trim();
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
+        String dayStart = res.getString(R.string.day_start).trim();
+        String nightStart = res.getString(R.string.night_start).trim();
         int background = 0xFF000000;
         boolean applied = false;
 
@@ -122,15 +140,80 @@ final class Config {
             vpn = string(json, "vpn_app", vpn);
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
             background = color(json, "background_color", background);
+            dayStart = string(json, "day_start", dayStart);
+            nightStart = string(json, "night_start", nightStart);
         }
-        File wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
-        if (wallpaper != null && !(wallpaper.isFile() && wallpaper.length() > 0)) wallpaper = null;
-        // A theme can also switch the wallpaper off while the file is still there.
-        if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) wallpaper = null;
+        File wallpaper = pictureIn(dir, WALLPAPER_NAME);
+        File wallpaperDay = pictureIn(dir, WALLPAPER_DAY_NAME);
+        // A theme can also switch the wallpaper off while the files are still there.
+        if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) {
+            wallpaper = null;
+            wallpaperDay = null;
+        }
+        // A day picture alone is just the picture; it only pairs with a night one.
+        if (wallpaper == null) {
+            wallpaper = wallpaperDay;
+            wallpaperDay = null;
+        }
 
         return new Config(dock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), shamsi, moduleCards, reducedMotion,
-                vpn, homeSettings, background, wallpaper, applied);
+                vpn, homeSettings, background, wallpaper, wallpaperDay,
+                DayNight.parseMinutes(dayStart, DayNight.DEFAULT_DAY_START),
+                DayNight.parseMinutes(nightStart, DayNight.DEFAULT_NIGHT_START), applied);
+    }
+
+    /** The picture to show at this time of day (minutes since midnight); null for the plain colour. */
+    File wallpaperAt(int minuteOfDay) {
+        if (wallpaperDay != null && DayNight.isDaytime(minuteOfDay, dayStartMinute, nightStartMinute)) return wallpaperDay;
+        return wallpaper;
+    }
+
+    /** Minutes since midnight on the TV's clock now. */
+    static int minuteOfDay() {
+        Calendar now = Calendar.getInstance();
+        return now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
+    }
+
+    private static File pictureIn(File dir, String name) {
+        File f = dir != null ? new File(dir, name) : null;
+        return f != null && f.isFile() && f.length() > 0 ? f : null;
+    }
+
+    /**
+     * Writes the dock into config.json, keeping every other key the file has; the file is created when
+     * missing. A file that exists but cannot be read back (invalid JSON, over 64 KB) is left alone and
+     * the save fails, since rewriting it would drop what we could not parse. The new content goes to a
+     * temporary file first and replaces config.json in one rename. False when nothing was written.
+     */
+    static boolean saveDockApps(Context ctx, List<String> dock) {
+        File dir = dir(ctx);
+        if (dir == null) return false;
+        File file = new File(dir, FILE_NAME);
+        File tmp = new File(dir, FILE_NAME + ".tmp");
+        try {
+            JSONObject json = new JSONObject();
+            if (file.exists()) {
+                json = read(file);
+                if (json == null) return false;
+            }
+            json.put("dock_apps", new JSONArray(dock));
+            try (FileOutputStream out = new FileOutputStream(tmp)) {
+                out.write(json.toString(2).getBytes(StandardCharsets.UTF_8));
+                out.getFD().sync();
+            }
+            try {
+                Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException e) {
+                Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+            return true;
+        } catch (Exception e) {
+            Log.w(TAG, "cannot write " + file + ": " + e);
+            //noinspection ResultOfMethodCallIgnored
+            tmp.delete();
+            return false;
+        }
     }
 
     /** Reads and parses the overlay; any problem means "no overlay", never a crash on the home screen. */

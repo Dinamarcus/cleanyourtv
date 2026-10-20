@@ -1,7 +1,7 @@
 # Themes
 
-A theme is a folder with a `config.json` and, optionally, a `wallpaper.jpg`. Pushing one changes the
-launcher's dock, layout and look on the TV without rebuilding the APK: the launcher reads
+A theme is a folder with a `config.json` and, optionally, a `wallpaper.jpg` (and a `wallpaper_day.jpg`).
+Pushing one changes the launcher's dock, layout and look on the TV without rebuilding the APK: the launcher reads
 `config.json` as an overlay over its built-in `config.xml` the next time it starts.
 
 ```bash
@@ -36,13 +36,19 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `vpn_app` | string | App the network pill opens when a VPN is configured; also shows a red "VPN off" badge while no VPN is up |
 | `show_home_settings_shortcut` | bool | The "Default home" tile, where the TV has a home picker |
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
-| `wallpaper` | bool | Show `wallpaper.jpg` from the theme folder (`true`), or ignore it (`false`) |
+| `wallpaper` | bool | Show `wallpaper.jpg` (and `wallpaper_day.jpg`) from the theme folder (`true`), or ignore them (`false`) |
+| `day_start`, `night_start` | `"HH:mm"` | When the day picture starts (default `"07:00"`) and the night one (default `"19:00"`); a bad value keeps the default |
 
 ## Wallpapers
 
 `wallpaper.jpg` is drawn full screen behind the launcher, centre-cropped. Keep it dark, 1920×1080 and
 under about 300 KB: the text, the hero name and the dock band are designed for black, and a 1 GB TV
 decodes the picture into memory on every Home start. Pictures larger than the screen are downsampled.
+
+A theme can also ship `wallpaper_day.jpg`: `wallpaper.jpg` is then the night picture. Home shows the one
+for the time on the TV (`day_start` to `night_start` is day, which may wrap midnight) and fades to the
+other at the change, within a minute, without a restart; the screensaver picks by the time it starts.
+Without `wallpaper.jpg`, `wallpaper_day.jpg` is shown all day. The same size advice applies to both.
 
 ## Reduced motion
 

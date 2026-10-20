@@ -50,6 +50,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
         /** Called for a D-pad direction key on a tile. Return true when handled (focus stays put). */
         boolean onTileVerticalKey(int position, int keyCode);
+
+        /** Called on a long press (hold OK) on a tile: the tile menu. */
+        void onTileMenu(int position, View card);
     }
 
     static final class Entry {
@@ -111,7 +114,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final TileListener listener;
     private final int dockSize;
     /** Dock order (config.xml dock_apps, or a theme's config.json). */
-    private final List<String> favourites;
+    private List<String> favourites;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final boolean showHomeSettings;
@@ -130,6 +133,36 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
+    }
+
+    /** The dock order as configured; may name apps that are not installed. */
+    List<String> favourites() {
+        return favourites;
+    }
+
+    /** Takes a new dock order; the tiles follow on the next {@link #reload}. */
+    void setFavourites(List<String> favourites) {
+        this.favourites = new ArrayList<>(favourites);
+    }
+
+    /** The apps on the dock slots as shown right now (the first dockSize tiles, in order). */
+    List<String> dockPackages() {
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < Math.min(dockSize, items.size()); i++) {
+            Entry e = items.get(i);
+            if (e.kind != Entry.HOME_SETTINGS && !out.contains(e.pkg)) out.add(e.pkg);
+        }
+        return out;
+    }
+
+    /** Package of the tile at a position, or null. */
+    String pkgAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position).pkg : null;
+    }
+
+    /** Whether the tile at a position is an app or card the owner can pin (not the Default home shortcut). */
+    boolean isPinnable(int position) {
+        return position >= 0 && position < items.size() && items.get(position).kind != Entry.HOME_SETTINGS;
     }
 
     /**
@@ -244,14 +277,21 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                ctx.startActivity(i);
-            } catch (ActivityNotFoundException ignored) {
-            }
+            int pos = h.getBindingAdapterPosition();
+            if (pos == RecyclerView.NO_POSITION) return false;
+            listener.onTileMenu(pos, v);
             return true;
         });
+    }
+
+    /** Opens the system's app-info page for a package. */
+    static void showAppInfo(Context ctx, String pkg) {
+        Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            ctx.startActivity(i);
+        } catch (ActivityNotFoundException ignored) {
+        }
     }
 
     /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */

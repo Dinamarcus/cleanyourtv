@@ -46,4 +46,10 @@
     <string name="card_state_new">New</string>
     <string name="card_state_new_key">New key</string>
     <string name="card_state_new_label">New name</string>
+    <string name="tile_move_left">Move left</string>
+    <string name="tile_move_right">Move right</string>
+    <string name="tile_remove_dock">Remove from dock</string>
+    <string name="tile_add_dock">Add to dock</string>
+    <string name="tile_app_info">App info</string>
+    <string name="dock_not_saved">Couldn\'t save the dock</string>
 </resources>

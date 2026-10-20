@@ -21,4 +21,10 @@
     <string name="date_format">EEEE  d MMMM</string>
     <string name="dream_name">นาฬิกา</string>
 
+    <string name="tile_move_left">ย้ายไปทางซ้าย</string>
+    <string name="tile_move_right">ย้ายไปทางขวา</string>
+    <string name="tile_remove_dock">นำออกจากแถบแอป</string>
+    <string name="tile_add_dock">เพิ่มในแถบแอป</string>
+    <string name="tile_app_info">ข้อมูลแอป</string>
+    <string name="dock_not_saved">บันทึกแถบแอปไม่ได้</string>
 </resources>

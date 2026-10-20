@@ -147,7 +147,7 @@ any violation drops that one card, with a log line and no other effect.
    signing key needs no new prompt.
 9. Launch. A card launches the declaring activity by explicit component with no extras and no data,
    the same way every tile is launched. No field of a card can name an intent, a URI, a class or a
-   package. Holding OK on a card opens the app's App info page, like any tile.
+   package. Holding OK on a card opens the tile menu, like any tile: App info among its entries, and pin to or move within the dock.
 10. Off switch. `module_cards` in `config.xml` or the `config.json` theme overlay (default `true`). When `false` the launcher never looks
     for cards, never asks, and the Module cards list only says that none are installed.
 
